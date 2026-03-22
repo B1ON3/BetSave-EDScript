@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSave - Jogos do Brasil</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f1a; color: #fff; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { text-align: center; padding: 30px 0; border-bottom: 1px solid #333; margin-bottom: 30px; }
+        header h1 { font-size: 2.5rem; color: #00d4aa; }
+        header p { color: #888; margin-top: 10px; }
+        .refresh-btn { background: #00d4aa; border: none; padding: 12px 24px; border-radius: 8px; color: #0f0f1a; font-weight: bold; cursor: pointer; margin-bottom: 20px; }
+        .refresh-btn:hover { background: #00b894; }
+        .match-card { background: #1a1a2e; border-radius: 12px; padding: 20px; margin-bottom: 15px; border-left: 4px solid #00d4aa; }
+        .match-card.serie-a { border-left-color: #ffd700; }
+        .match-card.serie-b { border-left-color: #ff6b6b; }
+        .match-card.women { border-left-color: #ff69b4; }
+        .match-league { font-size: 0.8rem; color: #888; margin-bottom: 8px; }
+        .match-teams { display: flex; justify-content: space-between; align-items: center; font-size: 1.2rem; font-weight: bold; margin-bottom: 10px; }
+        .match-team { flex: 1; }
+        .match-team.away { text-align: right; }
+        .match-score { padding: 0 20px; font-size: 1.5rem; color: #00d4aa; }
+        .match-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #333; }
+        .stat-box { background: #0f0f1a; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-box .label { color: #888; font-size: 0.75rem; }
+        .stat-box .value { font-size: 1.2rem; font-weight: bold; margin-top: 5px; }
+        .stat-box.home .value { color: #00d4aa; }
+        .stat-box.away .value { color: #ff6b6b; }
+        .odds-box { background: rgba(0,212,170,0.1); border-radius: 8px; padding: 10px; margin-top: 15px; }
+        .odds-row { display: flex; justify-content: space-between; align-items: center; }
+        .odd-item { text-align: center; flex: 1; }
+        .odd-item .label { color: #888; font-size: 0.75rem; }
+        .odd-item .value { font-size: 1.1rem; font-weight: bold; color: #00d4aa; }
+        .loading { text-align: center; padding: 50px; color: #888; font-size: 1.2rem; }
+        .live-badge { background: #ff6b6b; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .section-title { color: #00d4aa; font-size: 1.5rem; margin: 30px 0 15px; padding-bottom: 10px; border-bottom: 2px solid #00d4aa; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-btn { padding: 8px 16px; background: #1a1a2e; border: 1px solid #333; border-radius: 20px; color: #888; cursor: pointer; }
+        .filter-btn.active { background: #00d4aa; color: #0f0f1a; border-color: #00d4aa; }
+        @media (max-width: 768px) {
+            .match-stats { grid-template-columns: 1fr; }
+            .match-teams { flex-direction: column; gap: 10px; }
+            .match-team.away { text-align: left; }
+            .match-score { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇧🇷 Jogos do Brasil</h1>
+            <p>Jogos brasileiros ao vivo com estatísticas e odds</p>
+        </header>
+        
+        <button class="refresh-btn" onclick="loadBrazilMatches()">🔄 Atualizar</button>
+        
+        <div class="filters">
+            <button class="filter-btn active" onclick="filterMatches('all')">Todos</button>
+            <button class="filter-btn" onclick="filterMatches('serie-a')">Serie A</button>
+            <button class="filter-btn" onclick="filterMatches('serie-b')">Serie B</button>
+            <button class="filter-btn" onclick="filterMatches('women')">Feminino</button>
+        </div>
+        
+        <div id="matchesList">
+            <div class="loading">Carregando jogos...</div>
+        </div>
+    </div>
+    
+    <script>
+        let allMatches = [];
+        let currentFilter = 'all';
+        
+        async function loadBrazilMatches() {
+            const list = document.getElementById('matchesList');
+            list.innerHTML = '<div class="loading">🔄 Carregando jogos do Brasil...</div>';
+            
+            try {
+                const res = await fetch('/api/brazil');
+                const data = await res.json();
+                allMatches = data.matches || [];
+                
+                if (allMatches.length === 0) {
+                    list.innerHTML = '<div class="loading">Nenhum jogo brasileiro encontrado</div>';
+                    return;
+                }
+                
+                renderMatches();
+            } catch (e) {
+                list.innerHTML = '<div class="loading">Erro ao carregar jogos</div>';
+            }
+        }
+        
+        function filterMatches(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderMatches();
+        }
+        
+        function renderMatches() {
+            const list = document.getElementById('matchesList');
+            
+            let filtered = allMatches;
+            if (currentFilter !== 'all') {
+                if (currentFilter === 'serie-a') {
+                    filtered = allMatches.filter(m => m.league.includes('Serie A') && !m.league.includes('A2') && !m.league.includes('A1'));
+                } else if (currentFilter === 'serie-b') {
+                    filtered = allMatches.filter(m => m.league.includes('Serie B'));
+                } else if (currentFilter === 'women') {
+                    filtered = allMatches.filter(m => m.league.includes('Women') || m.league.includes('Feminino') || m.league.includes('(W)'));
+                }
+            }
+            
+            if (filtered.length === 0) {
+                list.innerHTML = '<div class="loading">Nenhum jogo nesta categoria</div>';
+                return;
+            }
+            
+            let html = `<div class="section-title">🔴 ${filtered.length} Jogos Ao Vivo</div>`;
+            
+            filtered.forEach(m => {
+                const score = m.score || '0-0';
+                const [homeScore, awayScore] = score.split('-').map(s => parseInt(s) || 0);
+                const total = homeScore + awayScore;
+                const overOdds = total >= 2 ? '1.30' : '1.85';
+                
+                let cardClass = 'match-card';
+                if (m.league.includes('Serie A') && !m.league.includes('A2')) cardClass += ' serie-a';
+                else if (m.league.includes('Serie B')) cardClass += ' serie-b';
+                else if (m.league.includes('Women') || m.league.includes('(W)')) cardClass += ' women';
+                
+                html += `
+                    <div class="${cardClass}">
+                        <div class="match-league">
+                            <span class="live-badge">🔴 AO VIVO</span>
+                            ${m.league}
+                        </div>
+                        <div class="match-teams">
+                            <span class="match-team">${m.home}</span>
+                            <span class="match-score">${score}</span>
+                            <span class="match-team away">${m.away}</span>
+                        </div>
+                        <div class="match-stats">
+                            <div class="stat-box home">
+                                <div class="label">${m.home}</div>
+                                <div class="value">${homeScore}</div>
+                            </div>
+                            <div class="stat-box" style="background:rgba(255,255,255,0.05);">
+                                <div class="label">Total Gols</div>
+                                <div class="value" style="color:#ffd700">${total}</div>
+                            </div>
+                            <div class="stat-box away">
+                                <div class="label">${m.away}</div>
+                                <div class="value">${awayScore}</div>
+                            </div>
+                        </div>
+                        <div class="odds-box">
+                            <div class="odds-row">
+                                <div class="odd-item">
+                                    <div class="label">Over 2.5</div>
+                                    <div class="value">${overOdds}</div>
+                                </div>
+                                <div class="odd-item">
+                                    <div class="label">Under 2.5</div>
+                                    <div class="value">${total >= 2 ? '2.10' : '1.65'}</div>
+                                </div>
+                                <div class="odd-item">
+                                    <div class="label">Ambos Marcam</div>
+                                    <div class="value">${homeScore > 0 && awayScore > 0 ? '1.30' : '2.20'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            list.innerHTML = html;
+        }
+        
+        loadBrazilMatches();
+        setInterval(loadBrazilMatches, 30000);
+    </script>
+</body>
+</html>

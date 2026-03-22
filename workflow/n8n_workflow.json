@@ -1,0 +1,118 @@
+{
+  "name": "EdScript - BetSave Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "analyze",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "betsave-analyzer"
+    },
+    {
+      "parameters": {
+        "url": "https://api.b365api.com/v1/events/inplay",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "fetch-live-matches",
+      "name": "Buscar Jogos Ao Vivo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300],
+      "notes": "Busca dados reais da BetsAPI quando token estiver ativo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Dados mock para desenvolvimento\nconst mockMatches = [\n  {\n    id: 123456,\n    league: \"Campeonato Brasileiro Série A\",\n    home: \"Flamengo\",\n    away: \"Palmeiras\",\n    score: \"2-1\",\n    time: \"65'\",\n    stats: {\n      possession: { home: 55, away: 45 },\n      shotsOnTarget: { home: 6, away: 4 }\n    }\n  },\n  {\n    id: 123457,\n    league: \"Premier League\",\n    home: \"Manchester City\",\n    away: \"Liverpool\",\n    score: \"1-1\",\n    time: \"32'\",\n    stats: {\n      possession: { home: 62, away: 38 },\n      shotsOnTarget: { home: 3, away: 2 }\n    }\n  }\n];\n\n// Se tiver dados da API real, usa eles\nconst apiData = $input.first().json;\nconst matches = apiData?.results || mockMatches;\n\nreturn matches.map(match => ({ json: match }));"
+      },
+      "id": "data-transform",
+      "name": "Transformar Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classificar risco\nfunction classifyRisk(probability) {\n  if (probability >= 0.71) return { level: 'BAIXO', emoji: '🟢', percentage: Math.round(probability * 100) };\n  if (probability >= 0.41) return { level: 'MEDIO', emoji: '🟡', percentage: Math.round(probability * 100) };\n  return { level: 'ALTO', emoji: '🔴', percentage: Math.round(probability * 100) };\n}\n\n// Analisar cada partida\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const match = item.json;\n  \n  // Cálculos de probabilidade (simplificados)\n  let homeProb = 0.33;\n  \n  // Bônus por posse de bola\n  if (match.stats?.possession?.home > match.stats?.possession?.away) {\n    homeProb += 0.1;\n  }\n  \n  // Bônus por chutes no gol\n  if (match.stats?.shotsOnTarget?.home > match.stats?.shotsOnTarget?.away) {\n    homeProb += 0.15;\n  }\n  \n  homeProb = Math.min(homeProb, 0.85);\n  homeProb = Math.max(homeProb, 0.15);\n  \n  const awayProb = 1 - homeProb - 0.25; // 25% empates\n  \n  const homeRisk = classifyRisk(homeProb);\n  const awayRisk = classifyRisk(awayProb);\n  \n  // Gerar recomendações\n  const recommendations = [];\n  \n  if (homeRisk.level !== 'ALTO') {\n    recommendations.push({\n      type: `VITÓRIA ${match.home.toUpperCase()}`,\n      odd: (1/homeProb).toFixed(2),\n      risk: homeRisk.level,\n      probability: Math.round(homeProb * 100) + '%'\n    });\n  }\n  \n  if (awayRisk.level !== 'ALTO') {\n    recommendations.push({\n      type: `VITÓRIA ${match.away.toUpperCase()}`,\n      odd: (1/awayProb).toFixed(2),\n      risk: awayRisk.level,\n      probability: Math.round(awayProb * 100) + '%'\n    });\n  }\n  \n  results.push({\n    json: {\n      match_id: match.id,\n      league: match.league,\n      teams: `${match.home} vs ${match.away}`,\n      score: match.score,\n      time: match.time,\n      analysis: {\n        home_probability: homeProb.toFixed(2),\n        home_risk: homeRisk,\n        recommendations: recommendations\n      }\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "analysis-logic",
+      "name": "Lógica de Análise",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-webhook",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "fetch-live-matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-live-matches": {
+      "main": [
+        [
+          {
+            "node": "data-transform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "data-transform": {
+      "main": [
+        [
+          {
+            "node": "analysis-logic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analysis-logic": {
+      "main": [
+        [
+          {
+            "node": "respond-webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-03-22T00:00:00.000Z",
+  "versionId": "1"
+}

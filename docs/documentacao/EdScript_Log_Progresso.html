@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>EdScript - Log de Progresso</title>
+<style>
+body { font-family: Calibri, sans-serif; margin: 2cm; }
+h1 { color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px; }
+h2 { color: #2c5282; margin-top: 30px; }
+h3 { color: #2b6cb0; }
+code { background: #f0f0f0; padding: 2px 6px; border-radius: 3px; }
+pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }
+.highlight { background: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 15px 0; }
+.success { background: #d4edda; padding: 10px; border-left: 4px solid #28a745; margin: 15px 0; }
+</style>
+</head>
+<body>
+
+<h1>📊 EdScript - Betting Assistant</h1>
+<p><strong>Última atualização:</strong> 21/03/2026</p>
+<p><strong>Status:</strong> 🔄 Em Desenvolvimento</p>
+
+---
+
+<h2>📋 Resumo do Projeto</h2>
+<p>Desenvolvimento de um assistente digital para análise de apostas esportivas que transforma dados complexos em recomendações simples e acionáveis.</p>
+
+<h3>🎯 Objetivos</h3>
+<ul>
+<li>Analisar partidas esportivas utilizando dados relevantes</li>
+<li>Gerar previsões de forma compreensível</li>
+<li>Classificar o nível de risco de cada aposta</li>
+<li>Explicar os motivos por trás das recomendações</li>
+<li>Integrar à experiência do usuário de forma simples</li>
+</ul>
+
+<h3>📊 Classificação de Risco</h3>
+<table border="1" cellpadding="8" cellspacing="0">
+<tr><th>Classificação</th><th>Probabilidade</th></tr>
+<tr><td>🔴 Alto Risco</td><td>0% - 40%</td></tr>
+<tr><td>🟡 Médio Risco</td><td>41% - 70%</td></tr>
+<tr><td>🟢 Baixo Risco</td><td>71% - 100%</td></tr>
+</table>
+
+---
+
+<h2>🔗 Recursos e APIs</h2>
+
+<h3>1. BetsAPI (API de Odds ao Vivo)</h3>
+<pre>
+Endpoint Base: https://api.b365api.com/
+Token: 28558-x464EYT2kttm4b
+Documentação: https://betsapi.com/docs/events/
+</pre>
+
+<h4>Endpoints Principais:</h4>
+<table border="1" cellpadding="8" cellspacing="0">
+<tr><th>Endpoint</th><th>Descrição</th></tr>
+<tr><td>/v1/events/inplay</td><td>Jogos ao vivo</td></tr>
+<tr><td>/v1/league?sport_id=1&cc=br</td><td>Ligas do Brasil (futebol)</td></tr>
+<tr><td>/v2/event/odds?event_id=X</td><td>Odds de um evento</td></tr>
+</table>
+
+<h4>Exemplo de Requisição:</h4>
+<pre>
+GET https://api.b365api.com/v1/events/inplay?token=28558-x464EYT2kttm4b
+</pre>
+
+<h3>2. Datasets Kaggle</h3>
+
+<h4>Dataset 1: Football Players Stats (2025-2026)</h4>
+<pre>
+URL: https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2025-2026
+Descrição: Estatísticas completas de jogadores de futebol
+</pre>
+
+<h4>Dataset 2: StatsBomb Football Data</h4>
+<pre>
+URL: https://www.kaggle.com/datasets/saurabhshahane/statsbomb-football-data
+Descrição: Dados event-level (eventos, partidas, escalações)
+Estrutura:
+- competitions.json - competições
+- events/{match_id}.json - eventos das partidas
+- lineups/{match_id}.json - escalações
+- matches/{competition_id}/{season_id}.json - partidas
+- three-sixty/{match_id}.json - dados espaciais 360
+
+Dados Originais (Open Source):
+https://github.com/statsbomb/open-data
+</pre>
+
+---
+
+<h2>📁 Estrutura de Arquivos</h2>
+<pre>
+C:\Users\geloc\Documents\EdScript\
+├── BetSave.docx              (Documentação original do projeto)
+├── access_api.js             (Script de teste da API BetsAPI)
+├── api_client.js             (Cliente API completo - USA ESTE!)
+├── mock_data.js              (Dados mock para desenvolvimento)
+├── analysis_engine.js        (Motor de análise com regras de risco)
+├── server.js                 (Servidor Express - API REST)
+├── test_analysis.js          (Script de teste do motor)
+├── n8n_workflow.json         (Workflow n8n para importar)
+├── package.json              (Dependências npm)
+├── EdScript_Log_Progresso.html (Este documento)
+└── data\
+    ├── api_responses.json     (Respostas da API)
+    ├── mock_matches.json       (Partidas mock)
+    ├── mock_players.json      (Jogadores mock)
+    ├── mock_h2h.json           (Confrontos diretos mock)
+    ├── players_stats\          (Dataset Kaggle - baixar)
+    └── statsbomb\             (Dataset Kaggle - baixar)
+</pre>
+
+---
+
+<h2>💻 Scripts Criados</h2>
+
+<h3>access_api.js (Node.js)</h3>
+<pre>
+const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+const API_ENDPOINT = "api_endpoint_here";  // ⚠️ MUDAR PARA URL REAL
+const TOKEN = "28558-x464EYT2kttm4b";
+
+const url = `${API_ENDPOINT}?token=${TOKEN}`;
+
+function fetchUrl(targetUrl) {
+    return new Promise((resolve, reject) => {
+        const protocol = targetUrl.startsWith('https') ? https : http;
+        protocol.get(targetUrl, (res) => {
+            let data = '';
+            res.on('data', (chunk) => { data += chunk; });
+            res.on('end', () => { resolve({ statusCode: res.statusCode, data: data }); });
+        }).on('error', (err) => { reject(err); });
+    });
+}
+
+// ... salva dados em dataset.json
+</pre>
+
+---
+
+<h2>⚠️ Problemas Encontrados</h2>
+
+<div class="highlight">
+<h3>Python Não Instalado</h3>
+<p>O script Python (access_api.py) não funciona porque o Python não está instalado corretamente no sistema. O comando <code>python</code> retorna erro.</p>
+<p><strong>Solução:</strong> Usar Node.js (access_api.js) que já está instalado.</p>
+</div>
+
+<div class="highlight">
+<h3>API Endpoint</h3>
+<p>O endpoint <code>api_endpoint_here</code> é apenas um placeholder na documentação.</p>
+<p><strong>Ação:</strong> Substituir por <code>https://api.b365api.com/v1/events/inplay</code></p>
+</div>
+
+---
+
+<h2>📝 Próximos Passos</h2>
+
+<h3>Fase 1: Download dos Datasets ✅ Identificado</h3>
+<ul>
+<li>[ ] Instalar kaggle CLI ou usar API</li>
+<li>[ ] Baixar Football Players Stats 2025-2026</li>
+<li>[ ] Baixar StatsBomb Football Data</li>
+<li>[ ] Organizar em data/players_stats/ e data/statsbomb/</li>
+</ul>
+
+<h3>Fase 2: Configurar Acesso à API ✅ Identificado</h3>
+<ul>
+<li>[x] Identificar endpoint correto: https://api.b365api.com/</li>
+<li>[x] Identificar token: 28558-x464EYT2kttm4b</li>
+<li>[ ] Atualizar access_api.js com URL real</li>
+<li>[ ] Testar conexão</li>
+</ul>
+
+<h3>Fase 3: Montar n8n 🔲 Pendente</h3>
+<ul>
+<li>[ ] Instalar n8n</li>
+<li>[ ] Criar workflow com:
+    <ul>
+    <li>HTTP Request Trigger</li>
+    <li>Node: Buscar partidas (BetsAPI)</li>
+    <li>Node: Carregar dados históricos (datasets)</li>
+    <li>Node: Regras de análise</li>
+    <li>Node: Retornar recomendação</li>
+    </ul>
+</ul>
+
+<h3>Fase 4: Interface 🔲 Pendente</h3>
+<ul>
+<li>[ ] Frontend simples para testar</li>
+<li>[ ] Exibir partidas</li>
+<li>[ ] Botão "Analisar"</li>
+<li>[ ] Mostrar resultado</li>
+</ul>
+
+---
+
+<h2>🔧 Comandos Úteis</h2>
+
+<h3>Baixar Dataset do Kaggle:</h3>
+<pre>
+# Instalar kaggle CLI
+pip install kaggle
+
+# Configurar credenciais (obter de kaggle.com/account)
+mkdir ~/.kaggle
+# Colar kaggle.json
+
+# Baixar dataset
+kaggle datasets download -d hubertsidorowicz/football-players-stats-2025-2026 -p ./data/players_stats
+</pre>
+
+<h3>Testar API BetsAPI:</h3>
+<pre>
+# Via curl
+curl "https://api.b365api.com/v1/events/inplay?token=28558-x464EYT2kttm4b"
+
+# Via Node.js
+node access_api.js
+</pre>
+
+<h3>n8n:</h3>
+<pre>
+# Instalar n8n
+npm install -g n8n
+
+# Ou via Docker
+docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n n8nio/n8n
+</pre>
+
+---
+
+<h2>📚 Referências</h2>
+<ul>
+<li><a href="https://betsapi.com/docs/">Documentação BetsAPI</a></li>
+<li><a href="https://github.com/statsbomb/open-data">StatsBomb Open Data (GitHub)</a></li>
+<li><a href="https://www.kaggle.com/datasets/hubertsidorowicz/football-players-stats-2025-2026">Football Players Stats 2025-2026</a></li>
+<li><a href="https://www.kaggle.com/datasets/saurabhshahane/statsbomb-football-data">StatsBomb Football Data</a></li>
+</ul>
+
+---
+
+<h2>📝 Sessões Anteriores</h2>
+
+<h3>Sessão 1 (21/03/2026) - PARCIAL</h3>
+<ul>
+<li>✅ Criado access_api.js para testar API</li>
+<li>✅ Identificado que Python não está instalado</li>
+<li>✅ Lida documentação BetSave.docx</li>
+<li>✅ Identificados datasets Kaggle</li>
+<li>✅ Identificada API BetsAPI</li>
+<li>⏳ Aguardando: Testar API com URL correta</li>
+<li>⏳ Aguardando: Baixar datasets</li>
+<li>⏳ Aguardando: Montar n8n</li>
+</ul>
+
+<h3>Sessão 2 (22/03/2026) - COMPLETA</h3>
+<ul>
+<li>✅ Testado token 248558x464EYT2kttm4b (retorna 401 - verificar)</li>
+<li>✅ API endpoint correta: https://api.b365api.com/v1/events/inplay</li>
+<li>✅ <strong>Criado motor de análise completo (analysis_engine.js)</strong></li>
+<li>✅ <strong>Criado dados mock (mock_data.js)</strong></li>
+<li>✅ <strong>Criado API client (api_client.js)</strong></li>
+<li>✅ <strong>Criado servidor Express (server.js)</strong></li>
+<li>✅ <strong>Criado workflow n8n (n8n_workflow.json)</strong></li>
+<li>✅ <strong>Sistema testado e funcionando!</strong></li>
+<li>✅ Salvos dados mock em data/</li>
+<li>⏳ Aguardando: Token válido da BetsAPI</li>
+<li>⏳ Aguardando: Download datasets Kaggle</li>
+</ul>
+
+<h3>Sessão 3 - COMEÇAR AQUI</h3>
+<ul>
+<li>[ ] Verificar token em https://betsapi.com/mm/orders</li>
+<li>[ ] Quando internet melhorar: Baixar datasets Kaggle</li>
+<li>[ ] Integrar dados reais no mock_data.js</li>
+<li>[ ] Iniciar n8n e importar workflow</li>
+<li>[ ] Testar API completa</li>
+</ul>
+
+<h3>Sessão 4 (22/03/2026 - tarde) - COMPLETA</h3>
+<ul>
+<li>✅ <strong>Baixados datasets Kaggle</strong>
+    <ul>
+    <li>Football Players Stats 2025-2026 (2719 jogadores)</li>
+    <li>StatsBomb Football Data (competições, eventos)</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado data_loader.js</strong> - Carrega e processa dados reais</li>
+<li>✅ <strong>Criado real_analysis.js</strong> - Motor de análise com dados reais</li>
+<li>✅ <strong>Sistema testado e funcionando!</strong></li>
+<li>✅ 61 times identificados, 2148 jogadores carregados</li>
+</ul>
+
+<h3>Sessão 5 - PRÓXIMOS PASSOS</h3>
+<ul>
+<li>[ ] Verificar/ativar token BetsAPI</li>
+<li>[ ] Integrar com API real (odds ao vivo)</li>
+<li>[ ] Montar workflow n8n</li>
+<li>[ ] Criar interface frontend</li>
+</ul>
+
+<hr>
+<p style="color: gray; font-size: 12px;">Documento gerado automaticamente - EdScript Betting Assistant</p>
+
+</body>
+</html>

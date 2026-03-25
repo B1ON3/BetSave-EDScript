@@ -17,8 +17,8 @@ pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; 
 <body>
 
 <h1>📊 EdScript - Betting Assistant</h1>
-<p><strong>Última atualização:</strong> 21/03/2026</p>
-<p><strong>Status:</strong> 🔄 Em Desenvolvimento</p>
+<p><strong>Última atualização:</strong> 25/03/2026</p>
+<p><strong>Status:</strong> ✅ Dashboard Completo - Próximos Passos</p>
 
 ---
 
@@ -93,24 +93,41 @@ https://github.com/statsbomb/open-data
 
 <h2>📁 Estrutura de Arquivos</h2>
 <pre>
-C:\Users\geloc\Documents\EdScript\
-├── BetSave.docx              (Documentação original do projeto)
-├── access_api.js             (Script de teste da API BetsAPI)
-├── api_client.js             (Cliente API completo - USA ESTE!)
-├── mock_data.js              (Dados mock para desenvolvimento)
-├── analysis_engine.js        (Motor de análise com regras de risco)
-├── server.js                 (Servidor Express - API REST)
-├── test_analysis.js          (Script de teste do motor)
-├── n8n_workflow.json         (Workflow n8n para importar)
-├── package.json              (Dependências npm)
-├── EdScript_Log_Progresso.html (Este documento)
-└── data\
-    ├── api_responses.json     (Respostas da API)
-    ├── mock_matches.json       (Partidas mock)
-    ├── mock_players.json      (Jogadores mock)
-    ├── mock_h2h.json           (Confrontos diretos mock)
-    ├── players_stats\          (Dataset Kaggle - baixar)
-    └── statsbomb\             (Dataset Kaggle - baixar)
+BetSave-EDScript/
+├── .env                       (Configurações de ambiente)
+├── package.json               (Dependências npm)
+├── code/
+│   ├── api/
+│   │   ├── api_client.js     (Cliente BetsAPI)
+│   │   └── access_api.js     (Script de teste)
+│   ├── engine/
+│   │   ├── player_analysis.js    (Análise de jogadores)
+│   │   ├── head_to_head.js       (Confrontos diretos)
+│   │   ├── advanced_metrics.js   (xG, pressão, posse)
+│   │   ├── insights.js           (Rankings e insights)
+│   │   ├── analysis_engine.js    (Motor original)
+│   │   └── real_analysis.js      (Análise com dados reais)
+│   ├── server/
+│   │   ├── server.js         (Servidor Express)
+│   │   └── loadEnv.js        (Carregador de .env)
+│   └── utils/
+│       ├── data_loader.js    (Carregador de datasets)
+│       └── mock_data.js      (Dados mock)
+├── data/
+│   ├── players_stats/
+│   │   ├── players_data-2025_2026.csv
+│   │   └── players_data_light-2025_2026.csv
+│   └── statsbomb/
+│       └── data/
+│           ├── competitions.json
+│           ├── events/
+│           ├── matches/
+│           ├── lineups/
+│           └── three-sixty/
+├── dashboard/                 (Interface web)
+├── docs/                     (Documentação)
+├── workflow/                 (Workflows n8n)
+└── tests/                    (Testes)
 </pre>
 
 ---
@@ -305,6 +322,497 @@ docker run -it --rm --name n8n -p 5678:5678 -v n8n_data:/home/node/.n8n n8nio/n8
 <li>[ ] Integrar com API real (odds ao vivo)</li>
 <li>[ ] Montar workflow n8n</li>
 <li>[ ] Criar interface frontend</li>
+</ul>
+
+<h3>Sessão 6 (25/03/2026) - COMPLETA - MÓDULOS DE ANÁLISE</h3>
+<ul>
+<li>✅ <strong>Reorganizada estrutura da pasta data/</strong>
+    <ul>
+    <li>players_stats/ - Dados de jogadores (CSV)</li>
+    <li>statsbomb/data/ - Dados StatsBomb (JSON)</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado player_analysis.js</strong> - Análise de jogadores
+    <ul>
+    <li>Performance score calculado</li>
+    <li>Rankings (time e liga)</li>
+    <li>Recomendações de aposta</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado head_to_head.js</strong> - Confrontos diretos
+    <ul>
+    <li>Histórico de jogos StatsBomb</li>
+    <li>Probabilidades baseadas em H2H</li>
+    <li>Recommendations com odds</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado advanced_metrics.js</strong> - Métricas avançadas
+    <ul>
+    <li>Cálculo de xG (gols esperados)</li>
+    <li>Métricas de pressão</li>
+    <li>Análise de posse</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado insights.js</strong> - Insights e rankings
+    <ul>
+    <li>Melhores ataques</li>
+    <li>Melhores defesas</li>
+    <li>Times mais disciplinados</li>
+    <li>Insights por liga</li>
+    </ul>
+</li>
+<li>✅ <strong>Corrigido data_loader.js</strong> - Carregador central
+    <ul>
+    <li>Parsing correto de CSV</li>
+    <li>Cache de dados</li>
+    <li>Busca por time/jogador</li>
+    </ul>
+</li>
+<li>✅ <strong>Testes realizados com sucesso:</strong>
+    <ul>
+    <li>Manchester City vs Liverpool - H2H e métricas</li>
+    <li>Premier League insights</li>
+    <li>Haaland player analysis</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 7 - PRÓXIMOS PASSOS</h3>
+<ul>
+<li>[ ] Integrar API BetsAPI com módulos de análise</li>
+<li>[ ] Criar workflow n8n</li>
+<li>[ ] Desenvolver interface frontend</li>
+<li>[ ] Documentação do processo de desenvolvimento</li>
+</ul>
+
+<h3>Sessão 8 (25/03/2026) - COMPLETA - NOVO DASHBOARD</h3>
+<ul>
+<li>✅ <strong>Redesenhado dashboard.html</strong>
+    <ul>
+    <li>Container de partidas ao vivo com filtros (Todos, Brasil, Champions, La Liga, Premier, Bundesliga)</li>
+    <li>Container de ligas populares</li>
+    <li>Container de próximas partidas com previsões e % de certeza</li>
+    <li>Campo de busca para analisar times específicos</li>
+    </ul>
+</li>
+<li>✅ <strong>Apagado brazil.html</strong> - Não é mais necessário</li>
+<li>✅ <strong>Atualizado classifyRisk()</strong>
+    <ul>
+    <li>Adicionado campo riskLabel ("Risco Alto", "Risco Médio", "Risco Baixo")</li>
+    </ul>
+</li>
+<li>✅ <strong>Melhorias na UI</strong>
+    <ul>
+    <li>Filtros visuais para partidas ao vivo</li>
+    <li>Cards de ligas populares clicáveis</li>
+    <li>Próximas partidas com previsão e confiança %</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 9 (25/03/2026) - COMPLETA - MENU LATERAL E DROPDOWNS</h3>
+<ul>
+<li>✅ <strong>Menu lateral fixo à esquerda</strong>
+    <ul>
+    <li>Filtro de ligas como sidebar fixa</li>
+    <li>Organizado por região (Brasil, Europa, Competições)</li>
+    </ul>
+</li>
+<li>✅ <strong>Dropdown com subcategorias de ligas</strong>
+    <ul>
+    <li>🇧🇷 Brasil: Brasileirão A, Série B, Copa do Nordeste, Copa do Brasil</li>
+    <li>🇪🇸 Europa: Premier League, La Liga, Bundesliga, Serie A, Ligue 1</li>
+    <li>🏆 Competições: Champions League, Europa League, Libertadores, Sul-Americana</li>
+    </ul>
+</li>
+<li>✅ <strong>Badge "AO VIVO" nos jogos</strong>
+    <ul>
+    <li>Badge pulsante nos jogos ao vivo</li>
+    <li>Mostrado no nome da liga e no card</li>
+    </ul>
+</li>
+<li>✅ <strong>Mais times adicionados</strong>
+    <ul>
+    <li>Flamengo, Palmeiras, Corinthians, São Paulo, Grêmio</li>
+    </ul>
+</li>
+<li>✅ <strong>Filtros de ligas completados</strong>
+    <ul>
+    <li>Todas as principais ligas adicionadas ao menu lateral</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 10 (25/03/2026) - COMPLETA - DASHBOARD CORRIGIDO</h3>
+<ul>
+<li>✅ <strong>Menu lateral fixo que acompanha a rolagem</strong></li>
+<li>✅ <strong>Filtros toggle (clicar seleciona, clicar novamente desseleciona)</strong>
+    <ul>
+    <li>Sistema de tags de filtros ativos</li>
+    <li>Botão para remover filtros individuais</li>
+    </ul>
+</li>
+<li>✅ <strong>Filtros nas próximas partidas</strong>
+    <ul>
+    <li>Todas, Hoje, Amanhã, Esta Semana</li>
+    </ul>
+</li>
+<li>✅ <strong>Campo de busca para análise de time único</strong>
+    <ul>
+    <li>Autocomplete com sugestões</li>
+    <li>Ao selecionar, mostra perfil completo do time</li>
+    </ul>
+</li>
+<li>✅ <strong>Novo endpoint /api/team-profile</strong>
+    <ul>
+    <li>Retorna estatísticas do time</li>
+    <li>Top jogadores</li>
+    <li>Rankings</li>
+    </ul>
+</li>
+<li>✅ <strong>Cores estilo "esporte da sorte"</strong>
+    <ul>
+    <li>Verde neon (#00ff88) como cor principal</li>
+    <li>Escuro e moderno</li>
+    <li>Badges e gradientes</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 11 (25/03/2026) - COMPLETA - CORREÇÕES DASHBOARD</h3>
+<ul>
+<li>✅ <strong>Menu lateral fixo corrigido</strong>
+    <ul>
+    <li>Sidebar agora é position: fixed com bottom: 0</li>
+    <li>acompanha a rolagem da página</li>
+    </ul>
+</li>
+<li>✅ <strong>Seção "Analisar Time" no menu lateral</strong>
+    <ul>
+    <li>Campo de busca com autocomplete</li>
+    <li>Pesquisa por nome do time</li>
+    </ul>
+</li>
+<li>✅ <strong>Modal com abas</strong>
+    <ul>
+    <li>Ao analisar jogo: Abas para ver cada time individualmente</li>
+    <li>Ao analisar time: Mostra perfil completo com métricas</li>
+    </ul>
+</li>
+<li>✅ <strong>Perfil do time completo</strong>
+    <ul>
+    <li>Estatísticas: Gols, Assistências, Finalizações, xG, Desarmes, Interceptações, Clean Sheets, Disciplina</li>
+    <li>Rankings: Ataque, Defesa, Geral, Liga</li>
+    <li>Top jogadores com posição</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 12 (25/03/2026) - COMPLETA - FILTROS AO VIVO</h3>
+<ul>
+<li>✅ <strong>Filtros nas partidas ao vivo</strong>
+    <ul>
+    <li>Todas, Brasil, Premier, La Liga, Bundesliga, Champions</li>
+    <li>Cada filtro mostra jogos específicos da categoria</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 13 (25/03/2026) - COMPLETA - CORREÇÃO FILTROS</h3>
+<ul>
+<li>✅ <strong>Lógica dos filtros corrigida</strong>
+    <ul>
+    <li>Cada filtro agora funciona corretamente</li>
+    <li>Mostra mensagem quando não há jogos para o filtro</li>
+    </ul>
+</li>
+<li>✅ <strong>Dados dos datasets para estatísticas</strong>
+    <ul>
+    <li>/api/analyze usa dados reais dos CSVs</li>
+    <li>/api/team-profile usa dados reais dos CSVs</li>
+    <li>Não depende da API para dados históricos</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 14 (24/03/2026) - COMPLETA - TESTES DO DASHBOARD</h3>
+<ul>
+<li>✅ <strong>Todos os endpoints testados e funcionando</strong>
+    <ul>
+    <li>/api/health - 2719 jogadores carregados</li>
+    <li>/api/teams - Lista de times</li>
+    <li>/api/analyze - Análise de partidas</li>
+    <li>/api/team-profile - Perfil de times</li>
+    <li>/api/matches - Próximas partidas (API BetsAPI)</li>
+    <li>/api/live - Partidas ao vivo (inclui Brasileirão)</li>
+    </ul>
+</li>
+<li>✅ <strong>Dashboard carregando corretamente</strong></li>
+</ul>
+
+<h3>Sessão 15 (24/03/2026) - COMPLETA - FILTROS HIERÁRQUICOS E MELHORIAS</h3>
+<ul>
+<li>✅ <strong>Filtro de e-sports removido das partidas ao vivo</strong>
+    <ul>
+    <li>Palavras-chave bloqueadas: esoccer, esports, fantasy</li>
+    <li>Apenas futebol real é exibido</li>
+    </ul>
+</li>
+<li>✅ <strong>Classificações do Brasileirão adicionadas</strong>
+    <ul>
+    <li>Brasileirão A (20 times): Palmeiras, Flamengo, Corinthians...</li>
+    <li>Brasileirão B (20 times): Sport, Novorizontino, Mirassol...</li>
+    <li>Brasileirão C (12 times): Ferroviário, Paysandu, Treze...</li>
+    <li>Brasileirão D (12 times): Manaus FC, São Raimundo PA, Remo...</li>
+    <li>Times ordenados por posição (1º ao 20º)</li>
+    <li>Indicador visual: top 4 (verde), rebaixamento (vermelho)</li>
+    </ul>
+</li>
+<li>✅ <strong>Filtros hierárquicos no sidebar</strong>
+    <ul>
+    <li>Ao clicar no nome da liga, expande e mostra times</li>
+    <li>Ao clicar em um time, abre análise do perfil</li>
+    <li>Posição na tabela + pontos + saldo de gols</li>
+    </ul>
+</li>
+<li>✅ <strong>Previsões melhoradas com mais métricas</strong>
+    <ul>
+    <li>Performance Score calculado (gols*2 + assists*1.5 + desarmes*0.3)</li>
+    <li>xG estimado (chutes * 0.12)</li>
+    <li>Insights mais detalhados: "Ataque superior (46 vs 31 gols)"</li>
+    <li>Previsões de corners, cartões e faltas baseadas em estatísticas reais</li>
+    </ul>
+</li>
+<li>✅ <strong>Novo endpoint /api/brazil-standings</strong>
+    <ul>
+    <li>Retorna classificação de todos os Brasileirões</li>
+    <li>Dados: posição, nome, pontos, jogos, vitórias, empates, derrotas, GP, GC, SG</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 16 (24/03/2026) - COMPLETA - MELHORIAS DE UX</h3>
+<ul>
+<li>✅ <strong>Toggle de E-Sports no Sidebar</strong>
+    <ul>
+    <li>Interruptor deslizante para ativar/desativar e-sports</li>
+    <li>Funciona em conjunto com os filtros de liga</li>
+    <li>Sincronizado com o toggle na seção ao vivo</li>
+    </ul>
+</li>
+<li>✅ <strong>Toggle de E-Sports nos Filtros ao Vivo</strong>
+    <ul>
+    <li>Interruptor ao lado do botão atualizar</li>
+    <li>Pode ser ativado/desativado a qualquer momento</li>
+    <li>Mostra contagem de e-sports disponíveis</li>
+    </ul>
+</li>
+<li>✅ <strong>Melhorias no Header</strong>
+    <ul>
+    <li>Contador de jogos ao vivo</li>
+    <li>Contador de próximos jogos</li>
+    <li>Contador de e-sports (destaque rosa)</li>
+    <li>Indicador de última atualização</li>
+    </ul>
+</li>
+<li>✅ <strong>Melhorias nas Mensagens de Estado</strong>
+    <ul>
+    <li>Empty states mais informativos com emojis</li>
+    <li>Mensagem para ativar e-sports quando não há jogos</li>
+    <li>Erros com sugestões de ação</li>
+    </ul>
+</li>
+<li>✅ <strong>Navegação por Teclado</strong>
+    <ul>
+    <li>ESC fecha modais e autocomplete</li>
+    <li>Melhora acessibilidade</li>
+    </ul>
+</li>
+<li>✅ <strong>Auto-refresh</strong>
+    <ul>
+    <li>Atualização automática a cada 60 segundos</li>
+    <li>Sincroniza com a BetsAPI</li>
+    </ul>
+</li>
+<li>✅ <strong>Estilização de E-Sports</strong>
+    <ul>
+    <li>Cards de e-sports com borda roxa</li>
+    <li>Ícone 🎮 antes do nome da liga</li>
+    <li>Distinção visual clara</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 17 (25/03/2026) - COMPLETA - REFATORAÇÃO DO DASHBOARD</h3>
+<ul>
+<li>✅ <strong>Reorganização em pastas</strong>
+    <ul>
+    <li>dashboard/css/styles.css - Estilos centralizados</li>
+    <li>dashboard/js/api.js - Cliente da API</li>
+    <li>dashboard/js/state.js - Gerenciamento de estado</li>
+    <li>dashboard/js/components.js - Componentes reutilizáveis</li>
+    <li>dashboard/js/dashboard.js - Lógica principal</li>
+    <li>dashboard/index.html - HTML simplificado</li>
+    </ul>
+</li>
+<li>✅ <strong>CSS Padronizado com Variáveis</strong>
+    <ul>
+    <li>--primary: #00ff88 (verde neon)</li>
+    <li>--secondary: #00d4ff (azul ciano)</li>
+    <li>--danger: #ff5252 (vermelho)</li>
+    <li>--warning: #ffc107 (amarelo)</li>
+    <li>--esports: #9c27b0 (roxo)</li>
+    <li>--bg-dark: #0d1117, --bg-card: #1a1f2e</li>
+    </ul>
+</li>
+<li>✅ <strong>Código Limpo e Modular</strong>
+    <ul>
+    <li>Estado centralizado em State object</li>
+    <li>Componentes reutilizáveis (matchCard, upcomingCard, etc)</li>
+    <li>API client isolado</li>
+    <li>Métodos bem organizados no Dashboard</li>
+    </ul>
+</li>
+<li>✅ <strong>Servidor Atualizado</strong>
+    <ul>
+    <li>Servindo arquivos estáticos (CSS, JS)</li>
+    <li>Redirect para index.html</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 18 (25/03/2026) - COMPLETA - REORGANIZAÇÃO BACKEND/FRONTEND</h3>
+<ul>
+<li>✅ <strong>Nova estrutura de pastas</strong>
+    <pre>
+BetSave-EDScript/
+├── backend/              (Servidor e lógica)
+│   ├── server/           (API e rotas)
+│   │   ├── server.js
+│   │   └── loadEnv.js
+│   ├── engine/           (Motores de análise)
+│   │   ├── player_analysis.js
+│   │   ├── head_to_head.js
+│   │   ├── advanced_metrics.js
+│   │   ├── insights.js
+│   │   ├── analysis_engine.js
+│   │   └── real_analysis.js
+│   ├── api/              (Cliente BetsAPI)
+│   │   ├── api_client.js
+│   │   └── access_api.js
+│   ├── utils/            (Utilitários)
+│   │   ├── data_loader.js
+│   │   └── mock_data.js
+│   ├── tests/            (Testes)
+│   └── workflow/          (Automação n8n)
+├── frontend/             (Interface web)
+│   └── dashboard/        (Dashboard BetSave)
+│       ├── index.html
+│       ├── css/styles.css
+│       └── js/
+│           ├── api.js
+│           ├── state.js
+│           ├── components.js
+│           └── dashboard.js
+├── data/                 (Dados estáticos)
+├── docs/                 (Documentação)
+└── package.json
+    </pre>
+</li>
+<li>✅ <strong>Caminhos atualizados</strong>
+    <ul>
+    <li>Servidor serve frontend/dashboard como arquivos estáticos</li>
+    <li>ROOT_DIR corrigido para nova estrutura</li>
+    <li>Referências DATA_DIR atualizadas</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 20 (25/03/2026) - COMPLETA - SUPER ODDS ENGINE v3.0</h3>
+<ul>
+<li>✅ <strong>Criado helpers.js</strong> - Funções utilitárias
+    <ul>
+    <li>Timezone conversion para Brasil (America/Sao_Paulo)</li>
+    <li>Odds utilities (implied probability, fair odds)</li>
+    <li>Mock data generation para fallback</li>
+    </ul>
+</li>
+<li>✅ <strong>Atualizado data_loader.js para v3.0</strong>
+    <ul>
+    <li>Agregação de estatísticas por time e liga</li>
+    <li>Fallback com médias de liga (Brasileiro: 1.2 goals, Europeu: 1.5)</li>
+    <li>Cache otimizado</li>
+    </ul>
+</li>
+<li>✅ <strong>Criado super_odds_engine.js v3.0</strong>
+    <ul>
+    <li>attackStrength = avgGoals + (avgShotsOnTarget * 0.3)</li>
+    <li>Mercados: Over 2.5, BTTS, Cards, Shots, 1X2, Player to Score</li>
+    <li>Final probability = modelProb * 0.6 + oddsProb * 0.4</li>
+    <li>Risk classification: ALTO (&lt;=0.4), MÉDIO (&lt;=0.7), BAIXO (&gt;0.7)</li>
+    </ul>
+</li>
+<li>✅ <strong>API BetsAPI integrada</strong>
+    <ul>
+    <li>Retry (2 tentativas) em caso de falha</li>
+    <li>Fallback para dados mock</li>
+    <li>Extração de odds de múltiplos bookmakers</li>
+    </ul>
+</li>
+<li>✅ <strong>Endpoints funcionando:</strong>
+    <ul>
+    <li>/api/matches - Jogos futuros com timezone Brasil</li>
+    <li>/api/live - Jogos ao vivo</li>
+    <li>/api/brazil-standings - Tabelas do Brasileirão (A, B, C, D)</li>
+    <li>/api/analyze - Análise completa com mercados estruturados</li>
+    <li>/api/team-stats - Perfil do time com elenco completo</li>
+    <li>/api/player - Estatísticas individuais do jogador</li>
+    </ul>
+</li>
+<li>✅ <strong>Frontend implementado:</strong>
+    <ul>
+    <li>Seção de classificação com abas (Brasileirão A, B, C, D, Copa Nordeste, Copa Brasil)</li>
+    <li>displayTeamProfile() - Mostra elenco completo por posição</li>
+    <li>showPlayerStats() - Perfil detalhado do jogador</li>
+    </ul>
+</li>
+<li>✅ <strong>Bugs corrigidos:</strong>
+    <ul>
+    <li>getRiskLevel() - agora retorna objeto { level, emoji, riskLabel }</li>
+    <li>probabilityCard() - atualizado para nova estrutura</li>
+    <li>Filtro e-sports - chamando applyEsportsFilter()</li>
+    <li>Sidebar - agora é relative (não fixed)</li>
+    </ul>
+</li>
+<li>✅ <strong>CSS adicionado para player profile (25/03/2026):</strong>
+    <ul>
+    <li>.player-profile - Container do perfil</li>
+    <li>.player-header - Layout avatar + info</li>
+    <li>.player-avatar - Badge circular gradiente com iniciais</li>
+    <li>.player-metrics - Linhas de stats com hover</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 21 - PRÓXIMOS PASSOS</h3>
+<ul>
+<li>[x] ✅ Menu lateral fixo que acompanha rolagem</li>
+<li>[x] ✅ Filtros das partidas ao vivo funcionando</li>
+<li>[x] ✅ Testar dashboard</li>
+<li>[x] ✅ Filtrar e-sports das partidas</li>
+<li>[x] ✅ Adicionar mais times brasileiros</li>
+<li>[x] ✅ Melhorar precisão das previsões</li>
+<li>[x] ✅ Melhorias de UX</li>
+<li>[x] ✅ Refatoração do código (pastas, CSS variáveis)</li>
+<li>[x] ✅ Reorganização backend/frontend</li>
+<li>[x] ✅ Super Odds Engine v3.0</li>
+<li>[x] ✅ helpers.js - Utilitários</li>
+<li>[x] ✅ Endpoints /api/team-stats e /api/player</li>
+<li>[x] ✅ CSS para player profile</li>
+<li>[ ] Adicionar mais ligas europeias na classificação</li>
+<li>[ ] Integrar dados de odds em tempo real</li>
+<li>[ ] Adicionar gráfico de probabilidades no modal</li>
+<li>[ ] Testar funcionalidades de elenco/perfil</li>
 </ul>
 
 <hr>

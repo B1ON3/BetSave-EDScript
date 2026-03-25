@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const PLAYERS_CSV = path.join(__dirname, 'data', 'players_stats', 'players_data-2025_2026.csv');
+const DATA_DIR = path.join(__dirname, '..', '..', '..', 'data');
+const PLAYERS_CSV = path.join(DATA_DIR, 'players_stats', 'players_data-2025_2026.csv');
+const STATSBOMB_DIR = path.join(DATA_DIR, 'statsbomb', 'data');
 
 function parseCSV(content) {
     const lines = content.split('\n');

@@ -1,143 +1,292 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import './styles/theme.css';
+import { API, classifyRisk, formatTime } from './utils';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
-import MatchGrid from './components/MatchGrid';
-import FloatingButton from './components/FloatingButton';
-import AssistantPanel from './components/AssistantPanel';
-import WelcomeModal from './components/WelcomeModal';
-import { generateOdds, API_BASE } from './utils/constants';
+import MatchList from './components/MatchList';
+import MatchDetail from './components/MatchDetail';
+import BetsaveButton from './components/BetsaveButton';
+import BetsavePanel from './components/BetsavePanel';
 
 const FALLBACK_MATCHES = [
-    { home: 'Flamengo', away: 'Palmeiras', league: 'Brasileirão A', live: true },
-    { home: 'Barcelona', away: 'Real Madrid', league: 'La Liga', live: false },
-    { home: 'Manchester City', away: 'Liverpool', league: 'Premier League', live: false },
-    { home: 'Corinthians', away: 'São Paulo', league: 'Brasileirão A', live: true },
-    { home: 'Bayern Munich', away: 'Dortmund', league: 'Bundesliga', live: false },
-    { home: 'Inter Milan', away: 'AC Milan', league: 'Serie A', live: false },
-    { home: 'PSG', away: 'Marseille', league: 'Ligue 1', live: false },
-    { home: 'Botafogo', away: 'Fluminense', league: 'Brasileirão A', live: false },
+    { id: '1', home: 'Flamengo', away: 'Palmeiras', league: 'Brasileirão Série A', status: 'INPLAY', homeScore: 1, awayScore: 0, time: '71:54', odds: { home: 1.85, draw: 3.40, away: 4.20 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'ALTO', emoji: '🔴', color: '#ff5252' }, category: 'national' },
+    { id: '2', home: 'Corinthians', away: 'São Paulo', league: 'Brasileirão Série A', status: 'INPLAY', homeScore: 0, awayScore: 1, time: '45:00', odds: { home: 2.50, draw: 3.20, away: 2.70 }, homeRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, awayRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, category: 'national' },
+    { id: '3', home: 'Manchester City', away: 'Liverpool', league: 'Premier League', status: 'INPLAY', homeScore: 2, awayScore: 1, time: '67:23', odds: { home: 1.70, draw: 3.80, away: 4.50 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'international' },
+    { id: '4', home: 'Real Madrid', away: 'Barcelona', league: 'La Liga', status: 'SCHEDULED', time: '16:00', odds: { home: 2.10, draw: 3.40, away: 3.20 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'international' },
+    { id: '5', home: 'Bayern Munich', away: 'Dortmund', league: 'Bundesliga', status: 'SCHEDULED', time: '18:30', odds: { home: 1.55, draw: 4.20, away: 5.00 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'international' },
+    { id: '6', home: 'Inter Milan', away: 'AC Milan', league: 'Serie A', status: 'INPLAY', homeScore: 2, awayScore: 2, time: '65:12', odds: { home: 2.00, draw: 3.30, away: 3.60 }, homeRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'international' },
+    { id: '7', home: 'Botafogo', away: 'Fluminense', league: 'Brasileirão Série A', status: 'SCHEDULED', time: '19:00', odds: { home: 1.90, draw: 3.30, away: 4.00 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'national' },
+    { id: '8', home: 'PSG', away: 'Marseille', league: 'Ligue 1', status: 'SCHEDULED', time: '22:00', odds: { home: 1.45, draw: 4.50, away: 5.50 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'MEDIO', emoji: '🟡', color: '#feca57' }, category: 'international' },
 ];
 
-function App() {
+export default function App() {
     const [matches, setMatches] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [selectedLeague, setSelectedLeague] = useState('all');
-    const [assistantOpen, setAssistantOpen] = useState(false);
+    const [categories, setCategories] = useState({ national: [], international: [], esoccer: [] });
+    const [counts, setCounts] = useState({ national: 0, international: 0, esoccer: 0 });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [league, setLeague] = useState('all');
+    const [tab, setTab] = useState('live');
+    const [liveSubTab, setLiveSubTab] = useState('all');
+    const [showEsoccer, setShowEsoccer] = useState(false);
     const [selectedMatch, setSelectedMatch] = useState(null);
-    const [showOnboarding, setShowOnboarding] = useState(false);
-    const [userProfile, setUserProfile] = useState(null);
-    const [hasOpenedAssistant, setHasOpenedAssistant] = useState(false);
+    const [betsaveOpen, setBetsaveOpen] = useState(false);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [favorites, setFavorites] = useState(() => {
+        try {
+            const saved = localStorage.getItem('betsave_favorites');
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
 
     useEffect(() => {
-        const savedProfile = localStorage.getItem('betsave_profile');
-        if (savedProfile) setUserProfile(JSON.parse(savedProfile));
+        try {
+            localStorage.setItem('betsave_favorites', JSON.stringify(favorites));
+        } catch {
+            // localStorage not available
+        }
+    }, [favorites]);
+
+    useEffect(() => {
         fetchMatches();
-    }, []);
-
-    useEffect(() => {
-        const interval = setInterval(fetchMatches, 60000);
-        return () => clearInterval(interval);
     }, []);
 
     const fetchMatches = async () => {
         setLoading(true);
+        setError(null);
+        
         try {
-            const res = await fetch(`${API_BASE}/api/matches`);
-            const data = await res.json();
-            const validMatches = data.matches?.filter(m => m.home && m.away);
+            const [liveRes, upcomingRes] = await Promise.all([
+                fetch(`${API}/api/live`),
+                fetch(`${API}/api/matches`)
+            ]);
             
-            if (validMatches?.length > 0) {
-                setMatches(validMatches.map(transformMatch));
-            } else {
-                setMatches(FALLBACK_MATCHES.map(createMatch));
-            }
-        } catch {
-            setMatches(FALLBACK_MATCHES.map(createMatch));
+            const liveData = liveRes.ok ? await liveRes.json() : { matches: [], categories: { national: [], international: [], esoccer: [] }, counts: { national: 0, international: 0, esoccer: 0 } };
+            const upcomingData = upcomingRes.ok ? await upcomingRes.json() : { matches: [] };
+            
+            const mapMatch = (m, isLive) => {
+                const homeProb = m.odds?.home ? 1/m.odds.home : 0.45;
+                const awayProb = m.odds?.away ? 1/m.odds.away : 0.30;
+                const homeRisk = classifyRisk(homeProb);
+                const awayRisk = classifyRisk(awayProb);
+                
+                return {
+                    id: String(m.id || ''),
+                    home: m.home || 'Time A',
+                    away: m.away || 'Time B',
+                    homeId: m.homeId,
+                    awayId: m.awayId,
+                    leagueId: m.leagueId,
+                    homeScore: m.homeScore ?? (m.score ? parseInt(m.score.split('-')[0]) : null),
+                    awayScore: m.awayScore ?? (m.score ? parseInt(m.score.split('-')[1]) : null),
+                    time: m.time || m.startTime,
+                    league: m.league || 'Liga',
+                    country: m.country,
+                    status: isLive ? 'INPLAY' : 'SCHEDULED',
+                    odds: m.odds,
+                    homeRisk: homeRisk,
+                    awayRisk: awayRisk,
+                    category: m.category || 'international'
+                };
+            };
+            
+            // Map all matches
+            const allMatches = [
+                ...(liveData.matches || []).map(m => mapMatch(m, true)),
+                ...(upcomingData.matches || []).map(m => mapMatch(m, false))
+            ];
+            
+            // Categorize live matches
+            const nationalMatches = (liveData.categories?.national || []).map(m => mapMatch(m, true));
+            const internationalMatches = (liveData.categories?.international || []).map(m => mapMatch(m, true));
+            const esoccerMatches = (liveData.categories?.esoccer || []).map(m => mapMatch(m, true));
+            
+            setCategories({
+                national: nationalMatches,
+                international: internationalMatches,
+                esoccer: esoccerMatches
+            });
+            
+            setCounts({
+                national: liveData.counts?.national || nationalMatches.length,
+                international: liveData.counts?.international || internationalMatches.length,
+                esoccer: liveData.counts?.esoccer || esoccerMatches.length
+            });
+            
+            // Set all matches
+            setMatches(allMatches);
+            
+        } catch (err) {
+            console.log('[BetSave] API indisponível, usando fallback');
+            setError('Modo demonstração - API offline');
+            setMatches(FALLBACK_MATCHES);
+            setCategories({
+                national: FALLBACK_MATCHES.filter(m => m.category === 'national'),
+                international: FALLBACK_MATCHES.filter(m => m.category === 'international'),
+                esoccer: []
+            });
         }
         setLoading(false);
     };
 
-    const transformMatch = (match) => ({
-        id: match.id,
-        home: match.home,
-        away: match.away,
-        homeScore: match.score?.home ?? null,
-        awayScore: match.score?.away ?? null,
-        time: match.time || match.startTime,
-        league: match.league,
-        status: match.status === 'INPLAY' || match.status === 'inplay' ? 'INPLAY' : 'SCHEDULED',
-        odds: match.odds || generateOdds()
-    });
+    const toggleFavorite = useCallback((matchId) => {
+        setFavorites(prev => {
+            if (prev.includes(matchId)) {
+                return prev.filter(id => id !== matchId);
+            }
+            return [...prev, matchId];
+        });
+    }, []);
 
-    const createMatch = (m, i) => ({
-        id: i + 1,
-        home: m.home,
-        away: m.away,
-        homeScore: m.live ? Math.floor(Math.random() * 4) : null,
-        awayScore: m.live ? Math.floor(Math.random() * 3) : null,
-        time: `${21 + i}:00`,
-        league: m.league,
-        status: m.live ? 'INPLAY' : 'SCHEDULED',
-        minute: m.live ? `${35 + Math.floor(Math.random() * 15)}'` : null,
-        odds: generateOdds()
-    });
-
-    const handleOpenAssistant = useCallback(() => {
-        if (!hasOpenedAssistant && !userProfile) {
-            setShowOnboarding(true);
-        }
-        setHasOpenedAssistant(true);
-        setAssistantOpen(true);
-    }, [hasOpenedAssistant, userProfile]);
-
-    const handleSelectMatch = useCallback((match) => {
+    const handleMatchClick = useCallback((match) => {
+        console.log('[BetSave] Jogo selecionado:', match.home, 'vs', match.away);
         setSelectedMatch(match);
-        if (!assistantOpen) setAssistantOpen(true);
-    }, [assistantOpen]);
+    }, []);
 
-    const handleOnboardingComplete = (profile) => {
-        localStorage.setItem('betsave_profile', JSON.stringify(profile));
-        setUserProfile(profile);
-        setShowOnboarding(false);
-    };
+    const handleCloseDetail = useCallback(() => {
+        setSelectedMatch(null);
+    }, []);
 
-    const matchCounts = matches.reduce((acc, m) => {
-        acc[m.league] = (acc[m.league] || 0) + 1;
-        return acc;
-    }, {});
+    const liveMatches = useMemo(() => matches.filter(m => m.status === 'INPLAY'), [matches]);
+    const upcomingMatches = useMemo(() => matches.filter(m => m.status === 'SCHEDULED'), [matches]);
+    const favoriteMatches = useMemo(() => matches.filter(m => favorites.includes(m.id)), [matches, favorites]);
+    
+    const displayedLiveMatches = useMemo(() => {
+        if (liveSubTab === 'national') {
+            return showEsoccer 
+                ? [...categories.national, ...categories.esoccer]
+                : categories.national;
+        }
+        if (liveSubTab === 'international') {
+            return showEsoccer 
+                ? [...categories.international, ...categories.esoccer]
+                : categories.international;
+        }
+        // All
+        return showEsoccer 
+            ? [...categories.national, ...categories.international, ...categories.esoccer]
+            : [...categories.national, ...categories.international];
+    }, [liveSubTab, categories, showEsoccer]);
+    
+    const displayedMatches = useMemo(() => {
+        if (tab === 'favorites') return favoriteMatches;
+        if (tab === 'live') return displayedLiveMatches;
+        return upcomingMatches;
+    }, [tab, displayedLiveMatches, upcomingMatches, favoriteMatches]);
+
+    const filteredMatches = useMemo(() => {
+        if (league === 'all') return displayedMatches;
+        return displayedMatches.filter(m => 
+            m.league && m.league.toLowerCase().includes(league.toLowerCase())
+        );
+    }, [displayedMatches, league]);
 
     return (
-        <div className="app">
-            <Sidebar
-                selectedLeague={selectedLeague}
-                onSelectLeague={setSelectedLeague}
-                matchCounts={matchCounts}
+        <div className="layout">
+            <Sidebar 
+                selected={league} 
+                onSelect={setLeague}
+                isOpen={sidebarOpen}
+                onClose={() => setSidebarOpen(false)}
             />
+            
+            {sidebarOpen && <div className="sidebar-overlay open" onClick={() => setSidebarOpen(false)} />}
+            
             <main className="main-content">
-                <Header />
-                {loading ? (
-                    <div className="loading"><div className="loading-spinner" /></div>
-                ) : (
-                    <MatchGrid
-                        matches={matches}
-                        selectedLeague={selectedLeague}
-                        onSelectMatch={handleSelectMatch}
-                        selectedMatchId={selectedMatch?.id}
-                    />
+                <Header onMenuClick={() => setSidebarOpen(true)} />
+                
+                {error && (
+                    <div className="error-banner">
+                        {error}
+                    </div>
                 )}
+                
+                <div className="tabs-bar">
+                    <button 
+                        className={`tab-btn ${tab === 'live' ? 'active' : ''}`}
+                        onClick={() => setTab('live')}
+                    >
+                        <span className="tab-dot live"></span>
+                        Ao Vivo
+                        <span className="tab-count">{liveMatches.length}</span>
+                    </button>
+                    <button 
+                        className={`tab-btn ${tab === 'upcoming' ? 'active' : ''}`}
+                        onClick={() => setTab('upcoming')}
+                    >
+                        <span className="tab-dot"></span>
+                        Próximos
+                        <span className="tab-count">{upcomingMatches.length}</span>
+                    </button>
+                    <button 
+                        className={`tab-btn ${tab === 'favorites' ? 'active' : ''}`}
+                        onClick={() => setTab('favorites')}
+                    >
+                        <span className="tab-icon">⭐</span>
+                        Favoritos
+                        <span className="tab-count">{favoriteMatches.length}</span>
+                    </button>
+                </div>
+                
+                {tab === 'live' && (
+                    <div className="live-subtabs">
+                        <button 
+                            className={`live-subtab ${liveSubTab === 'all' ? 'active' : ''}`}
+                            onClick={() => setLiveSubTab('all')}
+                        >
+                            🇧🇷 Todos
+                        </button>
+                        <button 
+                            className={`live-subtab ${liveSubTab === 'national' ? 'active' : ''}`}
+                            onClick={() => setLiveSubTab('national')}
+                        >
+                            🇧🇷 Nacionais
+                            <span className="tab-count">{counts.national}</span>
+                        </button>
+                        <button 
+                            className={`live-subtab ${liveSubTab === 'international' ? 'active' : ''}`}
+                            onClick={() => setLiveSubTab('international')}
+                        >
+                            🌍 Internacionais
+                            <span className="tab-count">{counts.international}</span>
+                        </button>
+                        <button 
+                            className={`live-subtab esoccer-toggle ${showEsoccer ? 'active' : ''}`}
+                            onClick={() => setShowEsoccer(!showEsoccer)}
+                        >
+                            🎮 E-Soccer
+                            <span className="tab-count">{counts.esoccer}</span>
+                        </button>
+                    </div>
+                )}
+                
+                <MatchList
+                    matches={filteredMatches}
+                    onSelect={handleMatchClick}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    loading={loading}
+                    onRefresh={fetchMatches}
+                />
             </main>
-            <FloatingButton onClick={handleOpenAssistant} isOpen={assistantOpen} />
-            <AssistantPanel
-                isOpen={assistantOpen}
-                onClose={() => setAssistantOpen(false)}
-                matches={matches}
-                selectedMatch={selectedMatch}
-                onSelectMatch={handleSelectMatch}
-            />
-            {showOnboarding && <WelcomeModal onComplete={handleOnboardingComplete} />}
+
+            {selectedMatch && (
+                <MatchDetail
+                    match={selectedMatch}
+                    onClose={handleCloseDetail}
+                />
+            )}
+
+            <BetsaveButton onClick={() => setBetsaveOpen(true)} />
+            
+            {betsaveOpen && (
+                <BetsavePanel 
+                    match={selectedMatch} 
+                    onClose={() => setBetsaveOpen(false)} 
+                />
+            )}
         </div>
     );
 }
-
-export default App;

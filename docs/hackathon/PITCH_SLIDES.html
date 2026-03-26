@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BetSave - Pitch Presentation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #00ff88;
+            --primary-dark: #00cc6a;
+            --secondary: #00d4ff;
+            --bg-dark: #0d1117;
+            --bg-card: #1a1f2e;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+        
+        .slide {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            position: relative;
+        }
+        
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+        
+        h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 40px;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            max-width: 1000px;
+            width: 100%;
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+        }
+        
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+        
+        .card p {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 60px;
+            margin: 40px 0;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            max-width: 1000px;
+        }
+        
+        .feature {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+        
+        .feature h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .feature p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
+            border: 2px solid var(--primary);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 800px;
+        }
+        
+        .timeline {
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .timeline-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+        
+        .timeline-status {
+            width: 100px;
+            font-weight: 700;
+        }
+        
+        .status-done {
+            color: var(--primary);
+        }
+        
+        .status-pending {
+            color: var(--text-secondary);
+        }
+        
+        .timeline-text {
+            font-size: 1.1rem;
+        }
+        
+        .contact {
+            text-align: center;
+        }
+        
+        .contact-info {
+            font-size: 1.3rem;
+            margin: 20px 0;
+            color: var(--text-secondary);
+        }
+        
+        .cta-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--bg-dark);
+            padding: 20px 40px;
+            border-radius: 12px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-decoration: none;
+            margin-top: 30px;
+        }
+        
+        .slide-cover {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #1a2332 100%);
+        }
+        
+        .slide-cover::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 255, 136, 0.15) 0%, transparent 50%);
+        }
+        
+        .logo-big {
+            font-size: 6rem;
+            margin-bottom: 20px;
+        }
+        
+        .tagline {
+            font-size: 2rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+        
+        .navigate {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            background: var(--bg-card);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .nav-btn:hover {
+            border-color: var(--primary);
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .print-hint {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.8rem;
+        }
+        
+        @media print {
+            .slide {
+                page-break-after: always;
+                min-height: 100vh;
+            }
+            .navigate, .print-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-hint">Pressione Ctrl+P para imprimir slides</div>
+
+    <!-- Slide 1: Capa -->
+    <div class="slide slide-cover" id="slide1">
+        <div class="logo-big">📊</div>
+        <h1>BetSave</h1>
+        <p class="tagline">IA para Análise de Apostas Esportivas</p>
+        <p class="subtitle">Hackathon Esporte da Sorte 2026</p>
+        <div class="slide-number">1/10</div>
+    </div>
+
+    <!-- Slide 2: O Problema -->
+    <div class="slide" id="slide2">
+        <h2>O <span class="gradient-text">Problema</span></h2>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">73%</div>
+                <div class="stat-label">dos apostadores perdem dinheiro</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">R$ 6Bi</div>
+                <div class="stat-label">movimentados por ano no Brasil</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">92%</div>
+                <div class="stat-label">apostam por emoção, sem dados</div>
+            </div>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 1.2rem; max-width: 600px; text-align: center;">
+            A maioria perde por falta de informação e análise de dados reais
+        </p>
+        <div class="slide-number">2/10</div>
+    </div>
+
+    <!-- Slide 3: A Solução -->
+    <div class="slide" id="slide3">
+        <h2>A <span class="gradient-text">Solução</span></h2>
+        <div class="highlight-box">
+            <h3 style="font-size: 1.5rem; margin-bottom: 20px;">
+                BetSave é uma extensão inteligente que se integra ao site de apostas
+            </h3>
+            <p style="font-size: 1.2rem; color: var(--text-secondary);">
+                Analisa mais de 50 métricas em tempo real e entrega recomendações<br>
+                com nível de confiança para cada aposta
+            </p>
+        </div>
+        <div class="slide-number">3/10</div>
+    </div>
+
+    <!-- Slide 4: Como Funciona -->
+    <div class="slide" id="slide4">
+        <h2>Como <span class="gradient-text">Funciona</span></h2>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📡</div>
+                <h3>Dados em Tempo Real</h3>
+                <p>Conecta na BetsAPI para odds e partidas ao vivo</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🤖</div>
+                <h3>Motor de IA</h3>
+                <p>Analisa histórico de 3.400+ jogos e 2.700+ jogadores</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>Recomendação</h3>
+                <p>Entrega predição com % de confiança</p>
+            </div>
+        </div>
+        <div class="slide-number">4/10</div>
+    </div>
+
+    <!-- Slide 5: Mercado -->
+    <div class="slide" id="slide5">
+        <h2><span class="gradient-text">Mercado</span> e Oportunidade</h2>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">R$ 6Bi</div>
+                <div class="stat-label">mercado anual no Brasil</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">25Mi</div>
+                <div class="stat-label">apostadores ativos</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">85%</div>
+                <div class="stat-label">apostam via mobile</div>
+            </div>
+        </div>
+        <div class="slide-number">5/10</div>
+    </div>
+
+    <!-- Slide 6: Modelo de Negócio -->
+    <div class="slide" id="slide6">
+        <h2>Modelo de <span class="gradient-text">Negócio</span></h2>
+        <div class="grid-2">
+            <div class="card">
+                <h3>🆓 Freemium</h3>
+                <p>Versão básica gratuita com funcionalidades limitadas para atrair usuários</p>
+            </div>
+            <div class="card">
+                <h3>💎 Premium</h3>
+                <p>R$ 29,90/mês com análises avançadas, tips exclusivos e alertas em tempo real</p>
+            </div>
+            <div class="card">
+                <h3>🏢 B2B</h3>
+                <p>Licenciamento para casas de apostas que querem oferecer IA aos clientes</p>
+            </div>
+            <div class="card">
+                <h3>📊 Dados</h3>
+                <p>Venda de dados anonimizados para analytics e inteligência de mercado</p>
+            </div>
+        </div>
+        <div class="slide-number">6/10</div>
+    </div>
+
+    <!-- Slide 7: Diferenciais -->
+    <div class="slide" id="slide7">
+        <h2>Nossos <span class="gradient-text">Diferenciais</span></h2>
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">🔗</div>
+                <h3>Integração Nativa</h3>
+                <p>Funciona dentro do site, sem trocar de plataforma</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🧠</div>
+                <h3>IA Própria</h3>
+                <p>Treinada com dados reais de +3.000 jogos</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🔍</div>
+                <h3>Transparente</h3>
+                <p>Mostra a lógica por trás de cada recomendação</p>
+            </div>
+        </div>
+        <div class="slide-number">7/10</div>
+    </div>
+
+    <!-- Slide 8: Métricas -->
+    <div class="slide" id="slide8">
+        <h2>Resultados e <span class="gradient-text">Métricas</span></h2>
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value">73%</div>
+                <div class="stat-label">acurácia Over 2.5</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">68%</div>
+                <div class="stat-label">acurácia BTTS</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value">实时</div>
+                <div class="stat-label">atualização a cada 60s</div>
+            </div>
+        </div>
+        <div class="slide-number">8/10</div>
+    </div>
+
+    <!-- Slide 9: Roadmap -->
+    <div class="slide" id="slide9">
+        <h2>Próximos <span class="gradient-text">Passos</span></h2>
+        <div class="timeline">
+            <div class="timeline-item">
+                <span class="timeline-status status-done">✅ Feito</span>
+                <span class="timeline-text">MVP funcional com análise de partidas</span>
+            </div>
+            <div class="timeline-item">
+                <span class="timeline-status status-done">✅ Feito</span>
+                <span class="timeline-text">Integração com BetsAPI e dados StatsBomb</span>
+            </div>
+            <div class="timeline-item">
+                <span class="timeline-status status-pending">📌 Q2 2026</span>
+                <span class="timeline-text">App mobile (iOS + Android)</span>
+            </div>
+            <div class="timeline-item">
+                <span class="timeline-status status-pending">📌 Q3 2026</span>
+                <span class="timeline-text">API pública para developers</span>
+            </div>
+            <div class="timeline-item">
+                <span class="timeline-status status-pending">📌 Q4 2026</span>
+                <span class="timeline-text">Gamificação e comunidade</span>
+            </div>
+        </div>
+        <div class="slide-number">9/10</div>
+    </div>
+
+    <!-- Slide 10: Contato -->
+    <div class="slide" id="slide10">
+        <h2>Obrigado!</h2>
+        <div class="contact">
+            <h3 style="font-size: 1.5rem; color: var(--text-secondary); margin-bottom: 30px;">
+                Vamos transformar a forma de apostar juntos?
+            </h3>
+            <div class="contact-info">
+                📧 bionemateus2023@gmail.com
+            </div>
+            <div class="contact-info">
+                📱 WhatsApp: (XX) XXXXX-XXXX
+            </div>
+            <div class="contact-info">
+                🌐 demo: http://localhost:3000
+            </div>
+            <a href="#" class="cta-btn" onclick="alert('Demo disponível em http://localhost:3000')">
+                🚀 Testar Demo Agora
+            </a>
+        </div>
+        <div class="slide-number">10/10</div>
+    </div>
+
+    <div class="navigate">
+        <button class="nav-btn" onclick="prevSlide()">← Anterior</button>
+        <button class="nav-btn" onclick="nextSlide()">Próximo →</button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = 10;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > totalSlides) n = totalSlides;
+            currentSlide = n;
+            
+            document.querySelectorAll('.slide').forEach(slide => {
+                slide.style.display = 'none';
+            });
+            
+            document.getElementById('slide' + n).style.display = 'flex';
+        }
+
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+
+        function prevSlide() {
+            showSlide(currentSlide - 1);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                prevSlide();
+            }
+        });
+
+        showSlide(1);
+    </script>
+</body>
+</html>

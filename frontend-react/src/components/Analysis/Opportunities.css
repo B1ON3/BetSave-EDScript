@@ -1,0 +1,137 @@
+/* Opportunities Styles */
+.opportunities {
+    margin-bottom: 24px;
+}
+
+.opportunities-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.opportunity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.opportunity-item:hover {
+    border-color: var(--accent);
+    background: var(--bg-card-hover);
+}
+
+.opportunity-item.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.opportunity-icon {
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-input);
+    border-radius: 8px;
+}
+
+.opportunity-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.opportunity-probability {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.opportunity-prob-bar {
+    width: 70px;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.opportunity-prob-fill {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.opportunity-prob-fill.low { background: var(--risk-low); }
+.opportunity-prob-fill.medium { background: var(--risk-medium); }
+.opportunity-prob-fill.high { background: var(--risk-high); }
+
+.opportunity-prob-text {
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 45px;
+    text-align: right;
+}
+
+.opportunity-risk {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    min-width: 55px;
+    text-align: center;
+}
+
+.opportunity-risk.low { background: rgba(0, 255, 136, 0.15); color: var(--risk-low); }
+.opportunity-risk.medium { background: rgba(255, 193, 7, 0.15); color: var(--risk-medium); }
+.opportunity-risk.high { background: rgba(255, 82, 82, 0.15); color: var(--risk-high); }
+
+/* Insights */
+.insights {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.insights-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.insight-item:last-child {
+    border-bottom: none;
+}
+
+.insight-icon {
+    font-size: 1rem;
+    margin-top: 2px;
+}
+
+.insight-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}

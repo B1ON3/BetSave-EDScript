@@ -17,8 +17,45 @@ pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; 
 <body>
 
 <h1>📊 EdScript - Betting Assistant</h1>
-<p><strong>Última atualização:</strong> 25/03/2026</p>
-<p><strong>Status:</strong> ✅ Dashboard Completo - Próximos Passos</p>
+<p><strong>Última atualização:</strong> 27/03/2026 - 21:00</p>
+<p><strong>Status:</strong> ✅ React Frontend Conectado ao Backend - Teste Completo</p>
+
+<h2>🆕 Sessão 26 - Integração Frontend-Backend</h2>
+
+<h3>✅ Completado</h3>
+<ul>
+<li>Backend verificado rodando na porta 3000</li>
+<li>Endpoint /api/analyze testado com sucesso (Barcelona vs Real Madrid)</li>
+<li>Endpoint /api/analyze testado com Flamengo vs Palmeiras</li>
+<li>App.jsx atualizado para buscar análise real do backend</li>
+<li>BestBet.jsx atualizado para exibir dados reais (odds, source badge)</li>
+<li>Melhoria no cálculo de BestBet (value betting formula)</li>
+<li>React dev server funcionando em http://localhost:5174</li>
+</ul>
+
+<h3>📡 Resultados do Teste - API</h3>
+<pre>
+Barcelona vs Real Madrid:
+- dataSource: "real"
+- confidence: 75%
+- totalGoalsExpected: 4.96
+- Markets: 9 opções com probabilidades reais
+
+Flamengo vs Palmeiras:
+- dataSource: "estimated"  
+- confidence: 50%
+- totalGoalsExpected: 2.4
+- BestBet: FINALIZAÇÕES OVER 10.5 (80%, 1.25 odds)
+</pre>
+
+<h3>🔧 Melhorias no App.jsx</h3>
+<pre>
+handleSelectMatch:
+- Fetch /api/analyze quando usuário seleciona partida
+- findBestBet(): Usa fórmula value = prob/odds
+- transformMarkets(): Filtra odds > 1 e prob > 0.3
+- generateInsightsFromAnalysis(): Cria insights dos dados reais
+</pre>
 
 ---
 
@@ -33,6 +70,18 @@ pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; 
 <li>Explicar os motivos por trás das recomendações</li>
 <li>Integrar à experiência do usuário de forma simples</li>
 </ul>
+
+<h3>🔌 Integração com Esporte da Sorte</h3>
+<div class="highlight">
+<p><strong>Design:</strong> O BetSave deve funcionar como uma extensão do site Esporte da Sorte.</p>
+<ul>
+<li>Botão com ícone no header do site (ao lado do suporte)</li>
+<li>Ao clicar, abre a interface do BetSave <strong>dentro do próprio site</strong></li>
+<li>Não redireciona - usa iframe/overlay integrado</li>
+<li>Mesma identidade visual: verde neon (#00ff88), tema escuro</li>
+<li>Experiência fluida como se fosse parte nativa do Esporte da Sorte</li>
+</ul>
+</div>
 
 <h3>📊 Classificação de Risco</h3>
 <table border="1" cellpadding="8" cellspacing="0">
@@ -809,10 +858,165 @@ BetSave-EDScript/
 <li>[x] ✅ helpers.js - Utilitários</li>
 <li>[x] ✅ Endpoints /api/team-stats e /api/player</li>
 <li>[x] ✅ CSS para player profile</li>
-<li>[ ] Adicionar mais ligas europeias na classificação</li>
-<li>[ ] Integrar dados de odds em tempo real</li>
-<li>[ ] Adicionar gráfico de probabilidades no modal</li>
-<li>[ ] Testar funcionalidades de elenco/perfil</li>
+</ul>
+
+<h3>Sessão 22 (26/03/2026) - COMPLETA - HOMEPAGE HACKATHON</h3>
+<ul>
+<li>✅ <strong>Criada homepage estilo Esporte da Sorte (26/03/2026)</strong>
+    <ul>
+    <li>frontend/index.html - Página principal com skin do Esporte da Sorte</li>
+    <li>frontend/css/homepage.css - Estilos da homepage</li>
+    <li>frontend/js/homepage.js - Lógica da homepage</li>
+    </ul>
+</li>
+<li>✅ <strong>Header com botão BetSave integrado</strong>
+    <ul>
+    <li>Logo "Esporte da Sorte" com gradiente verde</li>
+    <li>Navegação: Início, Ao Vivo, Esportes, Cassino, Slots, Promoções</li>
+    <li>Botão "📊 BetSave" com badge "AI" - abre overlay</li>
+    <li>Botões Login/Cadastrar</li>
+    </ul>
+</li>
+<li>✅ <strong>Seções da Homepage</strong>
+    <ul>
+    <li>Hero com banner de bônus e CTA</li>
+    <li>Banner de jogo ao vivo (Flamengo x Palmeiras)</li>
+    <li>Grid de partidas em destaque (6 cards)</li>
+    <li>Cards com odds e indicador "🤖 IA diz"</li>
+    <li>Seção de features do BetSave</li>
+    <li>CTA para abrir BetSave</li>
+    <li>Footer com links</li>
+    </ul>
+</li>
+<li>✅ <strong>BetSave Overlay/Modal</strong>
+    <ul>
+    <li>Modal fullscreen com backdrop blur</li>
+    <li>Header com logo, abas e botão fechar</li>
+    <li>Iframe carregando dashboard.html</li>
+    <li>Transições suaves (fade/scale)</li>
+    <li>Fechar com ESC ou clicando fora</li>
+    </ul>
+</li>
+<li>✅ <strong>Comunicação Homepage ↔ Dashboard</strong>
+    <ul>
+    <li>postMessage API para enviar comandos</li>
+    <li>Ao clicar em partida: envia home/away para analisar</li>
+    <li>Dashboard recebe mensagem e abre análise</li>
+    </ul>
+</li>
+<li>✅ <strong>Servidor atualizado</strong>
+    <ul>
+    <li>/ - serve homepage (frontend/index.html)</li>
+    <li>/dashboard - serve dashboard original</li>
+    <li>CSS/JS servidos da pasta correta</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 23 (26/03/2026) - COMPLETA - POLIMENTO E PITCH</h3>
+<ul>
+<li>✅ <strong>Animações polidas</strong>
+    <ul>
+    <li>Scrollbar customizado</li>
+    <li>Seleção de texto com cor do tema</li>
+    <li>Ripple effect nos botões</li>
+    <li>Animação de entrada dos cards</li>
+    <li>Header com sombra ao scrollar</li>
+    <li>Stagger animation nos elementos</li>
+    </ul>
+</li>
+<li>✅ <strong>Dados reais via API</strong>
+    <ul>
+    <li>Função loadMatchAnalyses() que busca dados da API</li>
+    <li>IDs adicionados nos cards de partidas</li>
+    <li>Atualização dinâmica dos valores de IA</li>
+    </ul>
+</li>
+<li>✅ <strong>Script do Pitch preparado</strong>
+    <ul>
+    <li>docs/hackathon/PITCH_SCRIPT.md - Script detalhado de 10 min</li>
+    <li>Estrutura: Abertura → Solução → Demo → Modelo → Diferenciais → CTA</li>
+    <li>Tips para apresentação</li>
+    <li>Roteiro de demo para ensaiar</li>
+    </ul>
+</li>
+<li>✅ <strong>Slides de Apresentação</strong>
+    <ul>
+    <li>docs/hackathon/PITCH_SLIDES.html - 10 slides prontos</li>
+    <li>Design profissional com tema verde neon</li>
+    <li>Navegação por teclado (setas)</li>
+    <li>Print-friendly (Ctrl+P)</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 24 - CHECKLIST HACKATHON</h3>
+<ul>
+<li>[x] ✅ Homepage estilo Esporte da Sorte</li>
+<li>[x] ✅ Botão BetSave integrado</li>
+<li>[x] ✅ Overlay com dashboard</li>
+<li>[x] ✅ Animações polidas</li>
+<li>[x] ✅ Dados reais via API</li>
+<li>[x] ✅ Script do pitch</li>
+<li>[x] ✅ Slides de apresentação</li>
+<li>[ ] Testar demo completa no navegador</li>
+<li>[ ] Ensaiar pitch 3x</li>
+<li>[ ] Preparar backup offline (prints/screenshots)</li>
+</ul>
+
+<h3>Sessão 25 (27/03/2026) - MIGRAÇÃO REACT COMPLETA</h3>
+<ul>
+<li>✅ <strong>Novo projeto React (Vite)</strong>
+    <ul>
+    <li>frontend-react/ - Criado com Vite + React</li>
+    <li>Theme Navy (#0a0e17) + Green (#00ff88)</li>
+    <li>Estrutura modular: components, hooks, services</li>
+    </ul>
+</li>
+<li>✅ <strong>Background Site Components</strong>
+    <ul>
+    <li>Header.jsx - Logo, navegação, botões</li>
+    <li>Sidebar.jsx - Ligas expansíveis (Brasil, Europa, Competições)</li>
+    <li>MatchGrid.jsx - Cards de partidas com odds</li>
+    </ul>
+</li>
+<li>✅ <strong>Floating Assistant</strong>
+    <ul>
+    <li>FloatingButton.jsx - Botão circular bottom-right com animação</li>
+    <li>Dashboard.jsx - Panel lateral com tabs</li>
+    </ul>
+</li>
+<li>✅ <strong>Dashboard Components</strong>
+    <ul>
+    <li>MatchAnalysis.jsx - Resumo do jogo + confiança</li>
+    <li>BestBet.jsx - Top Opportunity destacado</li>
+    <li>Opportunities.jsx - Lista de oportunidades</li>
+    <li>Insights.jsx - Explicações baseadas em dados</li>
+    </ul>
+</li>
+<li>✅ <strong>Onboarding Flow</strong>
+    <ul>
+    <li>WelcomeModal.jsx - 3 etapas (bem-vindo, nível, objetivo)</li>
+    <li>Perfil salvo no localStorage</li>
+    </ul>
+</li>
+<li>✅ <strong>Theme CSS (Navy Theme)</strong>
+    <ul>
+    <li>CSS Variables: --bg-primary: #0a0e17, --accent: #00ff88</li>
+    <li>Componentes: Header, Sidebar, MatchGrid, Floating, Dashboard</li>
+    <li>Animações: pulse, float, slideUp</li>
+    </ul>
+</li>
+</ul>
+
+<h3>Sessão 26 - PRÓXIMOS PASSOS</h3>
+<ul>
+<li>[ ] Implementar Prediction Engine (multi-factor model)</li>
+<li>[ ] Criar API-Football client com caching</li>
+<li>[ ] Build Data Aggregator layer</li>
+<li>[ ] Integrar API-Football (necessária API key)</li>
+<li>[ ] Melhorar análise com dados reais</li>
+<li>[ ] Adicionar chat assistant</li>
 </ul>
 
 <hr>

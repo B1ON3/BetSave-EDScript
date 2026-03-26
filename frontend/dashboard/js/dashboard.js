@@ -7,6 +7,56 @@ const Dashboard = {
         this.bindEvents();
         this.loadInitialData();
         this.startAutoRefresh();
+        this.setupParentCommunication();
+    },
+    
+    setupParentCommunication() {
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'analyzeMatch') {
+                this.analyzeMatchFromParent(event.data.home, event.data.away);
+            } else if (event.data && event.data.type === 'switchTab') {
+                this.switchTabFromParent(event.data.tab);
+            }
+        });
+    },
+    
+    async analyzeMatchFromParent(home, away) {
+        console.log(`🔍 Analisando: ${home} vs ${away}`);
+        
+        // Search for the match in the dashboard
+        const matches = document.querySelectorAll('.match-card');
+        for (const card of matches) {
+            const teams = card.querySelectorAll('.team-name');
+            if (teams.length === 2) {
+                const homeName = teams[0].textContent;
+                const awayName = teams[1].textContent;
+                if (homeName.includes(home.split(' ')[0]) || home.includes(homeName.split(' ')[0])) {
+                    card.click();
+                    break;
+                }
+            }
+        }
+        
+        // Also call the analyze API directly
+        try {
+            const data = await API.analyze(home, away);
+            if (data && data.success) {
+                this.displayMatchAnalysis(data);
+            }
+        } catch (e) {
+            console.log('Erro ao analisar:', e);
+        }
+    },
+    
+    switchTabFromParent(tab) {
+        if (tab === 'dashboard') {
+            // Stay on main dashboard
+        } else if (tab === 'analyze') {
+            // Focus on analyze section
+            document.querySelector('.search-box input')?.focus();
+        } else if (tab === 'standings') {
+            this.loadStandings();
+        }
     },
     
     bindEvents() {

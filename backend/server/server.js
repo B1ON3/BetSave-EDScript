@@ -529,7 +529,16 @@ const server = http.createServer((req, res) => {
     console.log(`${req.method} ${req.url}`);
     res.setHeader('Access-Control-Allow-Origin', '*');
     
-    if (req.url === '/' || req.url === '/dashboard' || req.url === '/index.html') {
+    if (req.url === '/') {
+        fs.readFile(path.join(ROOT_DIR, 'frontend', 'index.html'), (err, data) => {
+            if (err) { res.writeHead(500); res.end('{"error":"Homepage não encontrada"}'); return; }
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(data);
+        });
+        return;
+    }
+    
+    if (req.url === '/dashboard') {
         fs.readFile(path.join(ROOT_DIR, 'frontend', 'dashboard', 'index.html'), (err, data) => {
             if (err) { res.writeHead(500); res.end('{"error":"Dashboard não encontrado"}'); return; }
             res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -539,7 +548,7 @@ const server = http.createServer((req, res) => {
     }
     
     if (req.url.startsWith('/css/')) {
-        const cssFile = path.join(ROOT_DIR, 'frontend', 'dashboard', req.url);
+        const cssFile = path.join(ROOT_DIR, 'frontend', req.url);
         fs.readFile(cssFile, (err, data) => {
             if (err) { res.writeHead(404); res.end('CSS not found'); return; }
             res.writeHead(200, { 'Content-Type': 'text/css' });
@@ -549,7 +558,7 @@ const server = http.createServer((req, res) => {
     }
     
     if (req.url.startsWith('/js/')) {
-        const jsFile = path.join(ROOT_DIR, 'frontend', 'dashboard', req.url);
+        const jsFile = path.join(ROOT_DIR, 'frontend', req.url);
         fs.readFile(jsFile, (err, data) => {
             if (err) { res.writeHead(404); res.end('JS not found'); return; }
             res.writeHead(200, { 'Content-Type': 'application/javascript' });

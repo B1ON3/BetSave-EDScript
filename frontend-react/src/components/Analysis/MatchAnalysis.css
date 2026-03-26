@@ -1,0 +1,113 @@
+/* Match Analysis Styles */
+.analysis-match {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.analysis-match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 16px;
+}
+
+.analysis-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.analysis-team-icon {
+    font-size: 3rem;
+}
+
+.analysis-team-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.analysis-vs {
+    text-align: center;
+}
+
+.analysis-summary {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.analysis-summary p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+.analysis-confidence {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.analysis-confidence-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.analysis-confidence-bar {
+    width: 120px;
+    height: 8px;
+    background: var(--bg-input);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.analysis-confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent) 0%, var(--accent-dark) 100%);
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.analysis-confidence-text {
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 1rem;
+    min-width: 50px;
+}
+
+.analysis-form {
+    background: var(--bg-card);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.analysis-form-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.analysis-form-items {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.analysis-form-item {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.analysis-form-item.w { background: rgba(0, 255, 136, 0.2); color: var(--accent); }
+.analysis-form-item.d { background: rgba(255, 193, 7, 0.2); color: var(--risk-medium); }
+.analysis-form-item.l { background: rgba(255, 82, 82, 0.2); color: var(--risk-high); }

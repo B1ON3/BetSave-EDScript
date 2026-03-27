@@ -123,26 +123,26 @@ const server = http.createServer((req, res) => {
     
     if (req.url.startsWith('/api/match/')) {
         const matchId = req.url.split('/')[3];
-        routes.handleMatchById({ url: req.url, token: API_TOKEN }, res, matchId);
+        routes.handleMatchById({ url: req.url, token: API_TOKEN, headers: req.headers }, res, matchId);
         return;
     }
     
     if (req.url.startsWith('/api/odds/')) {
         const matchId = req.url.split('/')[3];
-        routes.handleOdds({ url: req.url, token: API_TOKEN }, res, matchId);
+        routes.handleOdds({ url: req.url, token: API_TOKEN, headers: req.headers }, res, matchId);
         return;
     }
     
     if (req.url.startsWith('/api/analyze')) {
         const home = urlObj.searchParams.get('home');
         const away = urlObj.searchParams.get('away');
-        routes.handleAnalyze({ url: req.url, token: API_TOKEN }, res, home, away);
+        routes.handleAnalyze({ url: req.url, token: API_TOKEN, headers: req.headers }, res, home, away);
         return;
     }
     
     if (req.url.startsWith('/api/team-profile')) {
         const teamName = urlObj.searchParams.get('team');
-        routes.handleTeamProfile({ url: req.url, token: API_TOKEN }, res, teamName);
+        routes.handleTeamProfile({ url: req.url, token: API_TOKEN, headers: req.headers }, res, teamName);
         return;
     }
     

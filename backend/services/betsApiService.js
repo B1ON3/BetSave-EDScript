@@ -2,6 +2,7 @@ const https = require('https');
 const mockData = require('../data/mock');
 
 const API_BASE = 'api.b365api.com';
+const REQUEST_TIMEOUT = 5000;
 
 function makeApiRequest(endpoint, params = {}, retries = 1, token) {
     return new Promise((resolve) => {
@@ -14,7 +15,7 @@ function makeApiRequest(endpoint, params = {}, retries = 1, token) {
         console.log(`📡 Request: ${endpoint}`);
         
         const tryRequest = (attempt) => {
-            https.get(url, (res) => {
+            const req = https.get(url, (res) => {
                 let data = '';
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => {
@@ -32,11 +33,24 @@ function makeApiRequest(endpoint, params = {}, retries = 1, token) {
                         }
                     }
                 });
-            }).on('error', (e) => {
+            });
+            
+            req.on('error', (e) => {
                 console.log(`❌ Network error ${endpoint}: ${e.message}`);
                 if (attempt < retries) {
                     console.log(`🔄 Retry ${attempt + 1}/${retries}...`);
                     setTimeout(() => tryRequest(attempt + 1), 1000);
+                } else {
+                    resolve(null);
+                }
+            });
+            
+            req.setTimeout(REQUEST_TIMEOUT, () => {
+                console.log(`⏱️ Timeout ${endpoint} - ${REQUEST_TIMEOUT}ms`);
+                req.destroy();
+                if (attempt < retries) {
+                    console.log(`🔄 Retry ${attempt + 1}/${retries}...`);
+                    setTimeout(() => tryRequest(attempt + 1), 500);
                 } else {
                     resolve(null);
                 }

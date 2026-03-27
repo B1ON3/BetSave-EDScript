@@ -107,36 +107,11 @@ function TabContent({ match, matchDetails, analysis, lineupTab, setLineupTab, ac
 }
 
 function OverviewTab({ match, matchDetails, analysis }) {
-    const [liveEvents, setLiveEvents] = useState([]);
     const teamAnalysis = analysis;
-
-    useEffect(() => {
-        if (!match?.id) return;
-        
-        const fetchLiveEvents = async () => {
-            try {
-                const response = await fetch(`${API}/api/match/${match.id}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.events && data.events.length > 0) {
-                        setLiveEvents(data.events);
-                    } else if (matchDetails?.events) {
-                        setLiveEvents(matchDetails.events);
-                    }
-                }
-            } catch (err) {
-                console.error('Erro ao buscar eventos ao vivo:', err);
-            }
-        };
-
-        fetchLiveEvents();
-        const interval = setInterval(fetchLiveEvents, 30000);
-        return () => clearInterval(interval);
-    }, [match?.id, matchDetails]);
 
     const getEventIcon = (type) => {
         if (type === 'GOOL' || type === 'goal' || type === 'Goal') return 'fa-futbol';
-        if (type.includes('VERMELHO') || type === 'redcard' || type === 'Red Card') return 'fa-square text-red';
+        if (type && type.includes && type.includes('VERMELHO')) return 'fa-square text-red';
         if (type === 'CARTAO' || type === 'yellowcard' || type === 'Yellow Card') return 'fa-square text-yellow';
         if (type === 'SUBST' || type === 'substitution' || type === 'Substitution') return 'fa-exchange-alt';
         if (type === 'PEN' || type === 'penalty' || type === 'Penalty') return 'fa-circle';
@@ -144,28 +119,29 @@ function OverviewTab({ match, matchDetails, analysis }) {
     };
 
     const translateEventType = (type) => {
+        if (!type) return 'EVENTO';
         if (type === 'GOOL' || type === 'goal' || type === 'Goal') return 'GOL';
         if (type === 'CARTAO' || type === 'yellowcard' || type === 'Yellow Card') return 'CARTAO AMARELO';
-        if (type.includes('VERMELHO') || type === 'redcard' || type === 'Red Card') return 'CARTAO VERMELHO';
+        if (type.includes && type.includes('VERMELHO')) return 'CARTAO VERMELHO';
         if (type === 'SUBST' || type === 'substitution' || type === 'Substitution') return 'SUBSTITUICAO';
         if (type === 'PEN' || type === 'penalty' || type === 'Penalty') return 'PENALTI';
         if (type === 'PEN_MISS' || type === 'penalty_missed') return 'PENALTI PERDIDO';
-        return type || 'EVENTO';
+        return type;
     };
 
-    const defaultEvents = [
+    const defaultEvents = matchDetails?.events && matchDetails.events.length > 0 ? [] : [
         { type: 'GOL', player: match?.home || 'Time Casa', time: '45+2\'', team: 'home', icon: 'fa-futbol' },
         { type: 'CARTAO AMARELO', player: 'Jogador Visitante', time: '38\'', team: 'away', icon: 'fa-square text-yellow' },
         { type: 'GOL', player: match?.away || 'Time Fora', time: '22\'', team: 'away', icon: 'fa-futbol' },
     ];
 
     const defaultStats = {
-        home: { possession: 58, passes: 340, fouls: 10, shots: 12 },
-        away: { possession: 42, passes: 245, fouls: 14, shots: 8 }
+        home: { possession: 50, passes: 300, fouls: 12, shots: 10 },
+        away: { possession: 50, passes: 280, fouls: 14, shots: 8 }
     };
 
-    const events = (liveEvents && liveEvents.length > 0)
-        ? liveEvents.map(e => ({
+    const events = (matchDetails?.events && matchDetails.events.length > 0)
+        ? matchDetails.events.map(e => ({
             ...e,
             type: translateEventType(e.type),
             icon: getEventIcon(e.type),
@@ -209,7 +185,7 @@ function OverviewTab({ match, matchDetails, analysis }) {
     const confidence = teamAnalysis?.summary?.confidence || 75;
     const riskLevel = teamAnalysis?.markets?.[0]?.risk?.level || 'MEDIO';
 
-    const isLive = match?.status === 'live' || liveEvents.length > 0;
+    const isLive = match?.status === 'INPLAY' || match?.status === 'live' || (matchDetails?.events && matchDetails.events.length > 0);
 
     return (
         <div className="overview-content">
@@ -657,7 +633,7 @@ function PredictionsTab({ match, analysis }) {
         summary: { winnerAccuracy: '74', over25Accuracy: '64', bttsAccuracy: '60', totalMatches: 50 }
     };
 
-    const { summary, teams, markets, best_bet } = analysis || defaultAnalysis;
+    const { summary, teams, markets, best_bet, source: dataSource } = analysis || defaultAnalysis || {};
     const validationData = validation || mockValidation;
 
     const getRiskLabel = (risk) => {
@@ -669,12 +645,12 @@ function PredictionsTab({ match, analysis }) {
         {
             category: 'QUEM VENCE',
             icon: 'fa-trophy',
-            items: markets
+            items: (markets || [])
                 .filter(m => (m.type || '').includes('VITORIA') || m.type === 'EMPATE')
                 .map(m => ({
                     label: (m.type || '').replace('VITORIA ', '').replace('TIME ', ''),
                     prob: Math.min(95, Math.round((m.probability || 0) * 100)),
-                    precision: summary.confidence || 75,
+                    precision: (summary?.confidence) || 75,
                     risk: getRiskLabel(m.risk),
                     insight: m.insight || ''
                 }))
@@ -682,13 +658,13 @@ function PredictionsTab({ match, analysis }) {
         {
             category: 'TOTAL DE GOLS',
             icon: 'fa-futbol',
-            items: markets
+            items: (markets || [])
                 .filter(m => (m.type || '').includes('OVER') || (m.type || '').includes('2.5'))
                 .slice(0, 3)
                 .map(m => ({
                     label: (m.type || '').replace('OVER ', '').replace('GOLS', 'gols'),
                     prob: Math.min(95, Math.round((m.probability || 0) * 100)),
-                    precision: summary.confidence || 75,
+                    precision: (summary?.confidence) || 75,
                     risk: getRiskLabel(m.risk),
                     insight: m.insight || ''
                 }))
@@ -696,13 +672,13 @@ function PredictionsTab({ match, analysis }) {
         {
             category: 'AMBOS MARCAM',
             icon: 'fa-check-circle',
-            items: markets
+            items: (markets || [])
                 .filter(m => (m.type || '').includes('AMBOS') || (m.type || '').includes('BTTS'))
                 .slice(0, 2)
                 .map(m => ({
                     label: m.type || 'BTTS',
                     prob: Math.min(95, Math.round((m.probability || 0) * 100)),
-                    precision: summary.confidence || 75,
+                    precision: (summary?.confidence) || 75,
                     risk: getRiskLabel(m.risk),
                     insight: m.insight || ''
                 }))
@@ -737,9 +713,9 @@ function PredictionsTab({ match, analysis }) {
             )}
 
             <div className="data-source-info">
-                <span className={`source-badge ${dataSource === 'real' ? 'real' : 'estimated'}`}>
-                    <i className={`fa fa-${dataSource === 'real' ? 'database' : 'cloud'}`}></i>
-                    Dados: {dataSource === 'real' ? 'Estatisticas reais' : 'Estimativas'}
+                <span className={`source-badge ${dataSource === 'api' ? 'real' : 'estimated'}`}>
+                    <i className={`fa fa-${dataSource === 'api' ? 'database' : 'cloud'}`}></i>
+                    Dados: {dataSource === 'api' ? 'Estatisticas reais' : 'Estimativas'}
                 </span>
             </div>
 

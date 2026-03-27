@@ -248,6 +248,32 @@
     width: auto;
 }
 
+.lg-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lg-icon i {
+    font-size: 24px;
+    color: #02003a;
+}
+
+.lg-text {
+    font-size: 24px;
+    font-weight: 800;
+    color: #fff;
+    margin-left: 12px;
+    background: linear-gradient(90deg, #fff 0%, #00ff88 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 /* Menu */
 .mn-menu {
     display: flex;

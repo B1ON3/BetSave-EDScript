@@ -1,4 +1,3 @@
-import logo from '../img/logo.png';
 import { useState } from 'react';
 
 export default function Header({ onMenuClick }) {
@@ -51,7 +50,8 @@ export default function Header({ onMenuClick }) {
                 <div className="hdr-second-wrapper left">
                     <div id="menu-wrapper" className="hdr-second container-90">
                         <a name="logo" className="lg-cntr left brand-logo logo-shadow" href="#">
-                            <img src={logo} className="lg" alt="BetSave" />
+                            <div className="lg-icon"><i className="fa fa-futbol"></i></div>
+                            <span className="lg-text">BetSave</span>
                         </a>
                         
                         <button className="header-menu-btn" onClick={onMenuClick}>

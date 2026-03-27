@@ -1,4 +1,5 @@
 const https = require('https');
+const mockData = require('../data/mock');
 
 const API_BASE = 'api.b365api.com';
 
@@ -47,7 +48,15 @@ function makeApiRequest(endpoint, params = {}, retries = 1, token) {
 }
 
 async function fetchUpcomingMatches(token) {
-    return await makeApiRequest('/v1/events/upcoming', { sport_id: 1 }, 2, token);
+    const data = await makeApiRequest('/v1/events/upcoming', { sport_id: 1 }, 2, token);
+    
+    if (!data?.results || data.results.length === 0) {
+        console.log('⚠️ API sem dados, usando fallback mock...');
+        const mock = mockData.generateMockMatches(20);
+        return { results: mock, source: 'mock', warning: 'API indisponível - usando dados simulados' };
+    }
+    
+    return { results: data.results, source: 'api' };
 }
 
 async function fetchLiveMatches(token) {

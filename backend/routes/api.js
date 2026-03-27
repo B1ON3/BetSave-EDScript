@@ -20,6 +20,7 @@ const {
     classifyRisk 
 } = require('../services/predictionService');
 const { analyzeMatch } = require('../engine/super_odds_engine');
+const mockData = require('../data/mock');
 const { 
     cleanTeamName, 
     cleanLeagueName, 
@@ -137,7 +138,14 @@ async function handleAnalyze(req, res, home, away) {
         console.log(`⚠️ Erro ao buscar odds: ${e.message}`);
     }
     
-    const analysis = analyzeMatch(homeDec, awayDec, marketOdds);
+    let analysis;
+    
+    if (matchInfo && marketOdds) {
+        analysis = analyzeMatch(homeDec, awayDec, marketOdds);
+    } else {
+        console.log('📊 Usando dados mock realistas...');
+        analysis = mockData.generatePredictionForMatch(homeDec, awayDec, marketOdds);
+    }
     
     if (matchInfo) {
         const time = convertToBrazilTime(matchInfo.time);

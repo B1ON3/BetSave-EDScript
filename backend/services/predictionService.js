@@ -124,45 +124,10 @@ function analyzeMatchFull(homeTeam, awayTeam) {
     };
 }
 
-function getMockMatches() {
-    const today = new Date();
-    const matches = [];
-    
-    const leagues = ['Premier League', 'La Liga', 'Serie A', 'Ligue 1', 'Bundesliga'];
-    const matchups = [
-        ['Manchester City', 'Liverpool'], ['Arsenal', 'Chelsea'], ['Real Madrid', 'Barcelona'],
-        ['PSG', 'Marseille'], ['Bayern', 'Dortmund'], ['Inter', 'Milan'],
-        ['Atletico Madrid', 'Sevilla'], ['Tottenham', 'Newcastle'], ['Juventus', 'Napoli'],
-        ['Benfica', 'Porto'], ['Ajax', 'PSV'], ['Leipzig', 'Leverkusen']
-    ];
+const mockData = require('../data/mock');
 
-    for (let day = 0; day < 7; day++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() + day);
-        
-        const numMatches = 3 + Math.floor(Math.random() * 4);
-        for (let i = 0; i < numMatches; i++) {
-            const matchup = matchups[Math.floor(Math.random() * matchups.length)];
-            const hour = 12 + Math.floor(Math.random() * 10);
-            const minute = Math.random() > 0.5 ? '00' : '30';
-            
-            const matchDate = new Date(date);
-            matchDate.setHours(hour, parseInt(minute), 0, 0);
-            
-            matches.push({
-                id: day * 100 + i,
-                date: matchDate.toISOString().split('T')[0],
-                time: `${hour}:${minute}`,
-                timestamp: matchDate.getTime(),
-                league: leagues[Math.floor(Math.random() * leagues.length)],
-                home: matchup[0],
-                away: matchup[1],
-                status: 'upcoming'
-            });
-        }
-    }
-    
-    return matches;
+function getMockMatches(count = 20) {
+    return mockData.generateMockMatches(count);
 }
 
 module.exports = {

@@ -27,7 +27,8 @@ const handlers = {
     handleTeams: routes.handleTeams,
     handleHealth: routes.handleHealth,
     handleBrazilStandings: routes.handleBrazilStandings,
-    handleValidatePredictions: routes.handleValidatePredictions
+    handleValidatePredictions: routes.handleValidatePredictions,
+    handleTeamData: routes.handleTeamData
 };
 
 const server = http.createServer((req, res) => {
@@ -169,6 +170,12 @@ const server = http.createServer((req, res) => {
         const teamName = urlObj.searchParams.get('team');
         const limit = urlObj.searchParams.get('limit') || '15';
         routes.handleTeamMatches({ url: req.url, token: API_TOKEN }, res, teamName, limit);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/team-data')) {
+        const teamName = urlObj.searchParams.get('team');
+        handlers.handleTeamData({ url: req.url, token: API_TOKEN }, res, teamName);
         return;
     }
     

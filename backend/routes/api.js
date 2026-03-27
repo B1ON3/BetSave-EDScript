@@ -20,6 +20,7 @@ const {
     classifyRisk 
 } = require('../services/predictionService');
 const { analyzeMatch } = require('../engine/super_odds_engine');
+const { getTeamData, getMatchAnalysis } = require('../engine/aggregator');
 const mockData = require('../data/mock');
 const { 
     cleanTeamName, 
@@ -179,11 +180,12 @@ async function handleAnalyze(req, res, home, away) {
     const homeDec = decodeURIComponent(home);
     const awayDec = decodeURIComponent(away);
     
-    let marketOdds = null;
-    let matchInfo = null;
-    
     console.log('═'.repeat(50));
     console.log(`🔍 Analisando: ${homeDec} vs ${awayDec}`);
+    
+    let marketOdds = null;
+    let matchInfo = null;
+    let aggregatorData = null;
     
     try {
         matchInfo = await searchMatch(homeDec, awayDec, token);
@@ -203,15 +205,50 @@ async function handleAnalyze(req, res, home, away) {
         console.log(`⚠️ Erro ao buscar odds: ${e.message}`);
     }
     
-    let analysis;
+    try {
+        console.log(`📡 Buscando dados do Aggregator (API-Football)...`);
+        aggregatorData = await getMatchAnalysis(homeDec, awayDec);
+        console.log(`✅ Aggregator: ${aggregatorData.home?._sources?.stats || 'unknown source'}`);
+    } catch (e) {
+        console.log(`⚠️ Aggregator error: ${e.message}`);
+    }
     
-    if (matchInfo && marketOdds) {
+    let analysis;
+    let dataSource = 'mock';
+    
+    if (aggregatorData?.home?.stats) {
+        console.log(`📊 Usando dados do Aggregator (API-Football)...`);
+        analysis = buildAnalysisFromAggregator(aggregatorData, marketOdds, matchInfo);
+        dataSource = aggregatorData.home._sources.stats || 'api-football';
+    } else if (matchInfo && marketOdds) {
+        console.log(`📊 Usando dados da BetsAPI...`);
         analysis = analyzeMatch(homeDec, awayDec, marketOdds);
-        analysis.source = 'api';
+        dataSource = 'api';
     } else {
-        console.log('📊 Usando dados mock realistas...');
+        console.log(`📊 Usando dados mock realistas...`);
         analysis = mockData.generatePredictionForMatch(homeDec, awayDec, marketOdds);
-        analysis.source = 'mock';
+        dataSource = 'mock';
+    }
+    
+    analysis.source = dataSource;
+    
+    if (aggregatorData?.home) {
+        analysis.teams = {
+            home: {
+                name: homeDec,
+                stats: aggregatorData.home.stats,
+                recentForm: aggregatorData.home.recentForm,
+                players: aggregatorData.home.players?.slice(0, 5) || [],
+                source: aggregatorData.home._sources.stats || 'unknown'
+            },
+            away: {
+                name: awayDec,
+                stats: aggregatorData.away.stats,
+                recentForm: aggregatorData.away.recentForm,
+                players: aggregatorData.away.players?.slice(0, 5) || [],
+                source: aggregatorData.away._sources.stats || 'unknown'
+            }
+        };
     }
     
     if (matchInfo) {
@@ -227,6 +264,107 @@ async function handleAnalyze(req, res, home, away) {
     
     console.log('═'.repeat(50));
     res.end(JSON.stringify(analysis));
+}
+
+function buildAnalysisFromAggregator(aggregatorData, marketOdds, matchInfo) {
+    const home = aggregatorData.home;
+    const away = aggregatorData.away;
+    
+    const homeGoals = home.stats.avgGoalsFor || 1.2;
+    const awayGoals = away.stats.avgGoalsFor || 1.0;
+    const homeDefense = home.stats.avgGoalsAgainst || 1.2;
+    const awayDefense = away.stats.avgGoalsAgainst || 1.2;
+    
+    const totalExpectedGoals = homeGoals + awayGoals;
+    const homeWinProb = (homeGoals / (homeGoals + awayGoals + 0.5)) * 0.6 + (home.stats.formScore || 0.5) * 0.4;
+    const awayWinProb = (awayGoals / (homeGoals + awayGoals + 0.5)) * 0.6 + (away.stats.formScore || 0.5) * 0.4;
+    const drawProb = 1 - homeWinProb - awayWinProb;
+    
+    const over25Prob = 1 - Math.pow(2.718, -0.5 * totalExpectedGoals);
+    const bttsProb = (1 - Math.pow(2.718, -homeGoals * 0.8)) * (1 - Math.pow(2.718, -awayGoals * 0.8));
+    
+    const homeRisk = classifyRisk(homeWinProb);
+    const drawRisk = classifyRisk(drawProb);
+    const awayRisk = classifyRisk(awayWinProb);
+    const over25Risk = classifyRisk(over25Prob);
+    const bttsRisk = classifyRisk(bttsProb);
+    
+    const confidence = Math.round((home.stats.formScore + away.stats.formScore) * 50 + 30);
+    
+    return {
+        summary: {
+            tendency: `${home.name} mostrando ${home.stats.formScore > 0.5 ? 'boa' : 'regular'} forma`,
+            confidence: Math.min(95, Math.max(55, confidence)),
+            totalGoalsExpected: totalExpectedGoals.toFixed(1),
+            dataSource: 'api-football'
+        },
+        teams: {
+            home: {
+                name: home.name,
+                avgGoals: homeGoals.toFixed(1),
+                attackStrength: (home.stats.attackStrength || 3).toFixed(1),
+                defensiveStrength: (home.stats.defenseStrength || 25).toFixed(0),
+                possession: Math.round(45 + home.stats.formScore * 10),
+                recentForm: home.recentForm || ['E', 'D', 'V', 'E', 'D']
+            },
+            away: {
+                name: away.name,
+                avgGoals: awayGoals.toFixed(1),
+                attackStrength: (away.stats.attackStrength || 2).toFixed(1),
+                defensiveStrength: (away.stats.defenseStrength || 28).toFixed(0),
+                possession: Math.round(55 - away.stats.formScore * 10),
+                recentForm: away.recentForm || ['E', 'D', 'V', 'E', 'D']
+            }
+        },
+        markets: [
+            { type: `VITÓRIA ${home.name.toUpperCase()}`, probability: homeWinProb, risk: homeRisk, insight: `Forma: ${home.stats.formString || 'N/A'}` },
+            { type: 'EMPATE', probability: drawProb, risk: drawRisk, insight: 'Equilíbrio entre os times' },
+            { type: `VITÓRIA ${away.name.toUpperCase()}`, probability: awayWinProb, risk: awayRisk, insight: `Forma: ${away.stats.formString || 'N/A'}` },
+            { type: 'OVER 2.5 GOLS', probability: over25Prob, risk: over25Risk, insight: `Média: ${totalExpectedGoals.toFixed(1)} gols esperados` },
+            { type: 'AMBOS MARCAM', probability: bttsProb, risk: bttsRisk, insight: 'Ambos times com capacidade ofensiva' }
+        ],
+        best_bet: selectBestBetFromAggregator(home, away, homeWinProb, awayWinProb, over25Prob, bttsProb, marketOdds),
+        insights: generateAggregatorInsights(home, away),
+        odds: marketOdds || { home: (1 / homeWinProb).toFixed(2), draw: (1 / drawProb).toFixed(2), away: (1 / awayWinProb).toFixed(2) }
+    };
+}
+
+function selectBestBetFromAggregator(home, away, homeProb, awayProb, over25Prob, bttsProb, marketOdds) {
+    const bets = [
+        { market: `VITÓRIA ${home.name}`, prob: homeProb, odds: marketOdds?.home || (1 / homeProb).toFixed(2) },
+        { market: 'EMPATE', prob: Math.min(homeProb, awayProb), odds: marketOdds?.draw || '3.30' },
+        { market: 'OVER 2.5 GOLS', prob: over25Prob, odds: marketOdds?.over25 || '1.85' },
+        { market: 'AMBOS MARCAM', prob: bttsProb, odds: marketOdds?.btts_yes || '1.75' }
+    ];
+    
+    const best = bets.sort((a, b) => (b.prob * parseFloat(b.odds)) - (a.prob * parseFloat(a.odds)))[0];
+    
+    return {
+        type: best.market,
+        confidence: Math.round(best.prob * 100),
+        odds: best.odds,
+        reason: `Valor: ${(best.prob * parseFloat(best.odds)).toFixed(2)}`,
+        value: best.prob * parseFloat(best.odds) > 1.05
+    };
+}
+
+function generateAggregatorInsights(home, away) {
+    const insights = [];
+    
+    if (home.stats.formScore > 0.6) {
+        insights.push({ type: 'positive', text: `${home.name} em boa fase` });
+    }
+    if (away.stats.formScore > 0.6) {
+        insights.push({ type: 'positive', text: `${away.name} em boa fase` });
+    }
+    if (home.stats.avgGoalsFor > 1.5) {
+        insights.push({ type: 'positive', text: `${home.name} marca em média ${home.stats.avgGoalsFor.toFixed(1)} gols` });
+    }
+    if (away.stats.avgGoalsAgainst > 1.5) {
+        insights.push({ type: 'warning', text: `${away.name} sofre muitos gols fora (${away.stats.avgGoalsAgainst.toFixed(1)})` });
+    }
+    
+    return insights;
 }
 
 function handleTeams(req, res) {
@@ -612,6 +750,35 @@ function handleBrazilStandings(req, res) {
     res.end(JSON.stringify({ standings }));
 }
 
+async function handleTeamData(req, res, teamName) {
+    if (!teamName) {
+        res.end(JSON.stringify({ error: 'Nome do time necessário' }));
+        return;
+    }
+    
+    const teamDec = decodeURIComponent(teamName);
+    console.log(`📡 Buscando dados para: ${teamDec}`);
+    
+    try {
+        const teamData = await getTeamData(teamDec);
+        
+        res.end(JSON.stringify({
+            success: true,
+            team: teamDec,
+            data: {
+                stats: teamData.stats,
+                recentForm: teamData.recentForm,
+                players: teamData.players?.slice(0, 15) || [],
+                source: teamData._sources.stats || 'unknown',
+                warnings: teamData._warnings || []
+            }
+        }));
+    } catch (e) {
+        console.log(`❌ Erro ao buscar dados do time: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
 module.exports = {
     handleMatches,
     handleLive,
@@ -627,5 +794,6 @@ module.exports = {
     handleTeamMatches,
     handleValidatePredictions,
     handleBrazil,
-    handleBrazilStandings
+    handleBrazilStandings,
+    handleTeamData
 };

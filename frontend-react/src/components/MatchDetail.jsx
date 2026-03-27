@@ -74,19 +74,19 @@ export default function MatchDetail({ match, onClose }) {
                         className={`detail-tab ${tab === 'overview' ? 'active' : ''}`}
                         onClick={() => setTab('overview')}
                     >
-                        📊 Visão Geral
+                        <i className="fa fa-chart-bar"></i> Visao Geral
                     </button>
                     <button 
                         className={`detail-tab ${tab === 'lineup' ? 'active' : ''}`}
                         onClick={() => setTab('lineup')}
                     >
-                        📋 Escalação
+                        <i className="fa fa-list"></i> Escalacao
                     </button>
                     <button 
                         className={`detail-tab ${tab === 'predictions' ? 'active' : ''}`}
                         onClick={() => setTab('predictions')}
                     >
-                        🔮 Previsões
+                        <i className="fa fa-magic"></i> Previsao
                     </button>
                 </div>
 
@@ -114,7 +114,7 @@ function OverviewTab({ match, analysis, loading }) {
         <div className="tab-content">
             {/* Head-to-Head */}
             <div className="h2h-section">
-                <h3 className="section-title">⚔️ Confrontos Diretos</h3>
+                <h3 className="section-title"><i className="fa fa-exchange-alt"></i> Confrontos Diretos</h3>
                 <div className="h2h-grid">
                     {analysis?.h2h ? (
                         analysis.h2h.map((item, index) => (
@@ -166,7 +166,7 @@ function OverviewTab({ match, analysis, loading }) {
 
             {/* Stats Comparison */}
             <div className="stats-section">
-                <h3 className="section-title">📊 Estatísticas</h3>
+                <h3 className="section-title"><i className="fa fa-chart-bar"></i> Estatisticas</h3>
                 <div className="stats-comparison">
                     <div className="stat-row">
                         <span className="stat-label">{homeStats?.played || 10} jogos</span>
@@ -212,7 +212,7 @@ function OverviewTab({ match, analysis, loading }) {
 
             {/* Form */}
             <div className="form-section">
-                <h3 className="section-title">📈 Forma Recente</h3>
+                <h3 className="section-title"><i className="fa fa-chart-line"></i> Forma Recente</h3>
                 <div className="form-list">
                     <div style={{flex: 1}}>
                         <div className="form-team">{match.home}</div>
@@ -307,8 +307,8 @@ function LineupTab({ match, analysis, loading }) {
                     
                     {homeBestPlayer && (
                         <div className="best-player">
-                            <div className="best-player-badge">🏆 MELHOR JOGADOR</div>
-                            <div className="best-player-name">⚽ {homeBestPlayer.name}</div>
+                            <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
+                            <div className="best-player-name"><i className="fa fa-futbol"></i> {homeBestPlayer.name}</div>
                             <div className="best-player-stats">
                                 <span>Gols: {homeBestPlayer.goals}</span>
                                 <span>Assist: {homeBestPlayer.assists}</span>
@@ -342,8 +342,8 @@ function LineupTab({ match, analysis, loading }) {
                     
                     {awayBestPlayer && (
                         <div className="best-player">
-                            <div className="best-player-badge">🏆 MELHOR JOGADOR</div>
-                            <div className="best-player-name">⚽ {awayBestPlayer.name}</div>
+                            <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
+                            <div className="best-player-name"><i className="fa fa-futbol"></i> {awayBestPlayer.name}</div>
                             <div className="best-player-stats">
                                 <span>Gols: {awayBestPlayer.goals}</span>
                                 <span>Assist: {awayBestPlayer.assists}</span>
@@ -392,7 +392,7 @@ function PredictionsTab({ match, analysis, loading }) {
             {/* Super Odds */}
             {superOdds && (
                 <div className="super-odds-card">
-                    <div className="super-odds-badge">🔥 BEST OPPORTUNITY</div>
+                    <div className="super-odds-badge"><i className="fa fa-fire"></i> BEST OPPORTUNITY</div>
                     <div className="super-odds-main">
                         <span className="super-odds-type">{superOdds.type}</span>
                         <span className="super-odds-odd">Odd: {superOdds.odd}</span>
@@ -403,7 +403,7 @@ function PredictionsTab({ match, analysis, loading }) {
 
             {/* Probabilities */}
             <div className="predictions-section">
-                <h3 className="section-title">📊 Probabilidades</h3>
+                <h3 className="section-title"><i className="fa fa-chart-bar"></i> Probabilidades</h3>
                 <div className="predictions-grid">
                     <div className="pred-item">
                         <span className="pred-label">{match.home}</span>
@@ -412,7 +412,7 @@ function PredictionsTab({ match, analysis, loading }) {
                         </div>
                         <span className="pred-value">
                             {Math.round(parseFloat(probs.home) * 100)}%
-                            <span className="risk-indicator">{match.homeRisk?.emoji || '🟡'}</span>
+                            <i className={`fa fa-circle ${match.homeRisk?.level === 'BAIXO' ? 'text-green' : match.homeRisk?.level === 'ALTO' ? 'text-red' : 'text-yellow'}`}></i>
                         </span>
                     </div>
                     <div className="pred-item">
@@ -429,7 +429,7 @@ function PredictionsTab({ match, analysis, loading }) {
                         </div>
                         <span className="pred-value">
                             {Math.round(parseFloat(probs.away) * 100)}%
-                            <span className="risk-indicator">{match.awayRisk?.emoji || '🟡'}</span>
+                            <i className={`fa fa-circle ${match.awayRisk?.level === 'BAIXO' ? 'text-green' : match.awayRisk?.level === 'ALTO' ? 'text-red' : 'text-yellow'}`}></i>
                         </span>
                     </div>
                 </div>
@@ -437,17 +437,17 @@ function PredictionsTab({ match, analysis, loading }) {
 
             {/* Markets */}
             <div className="markets-section">
-                <h3 className="section-title">🎯 Mercados</h3>
+                <h3 className="section-title"><i className="fa fa-bullseye"></i> Mercados</h3>
                 <div className="markets-grid">
                     <div className="market-item">
                         <span className="market-name">Over 2.5</span>
                         <span className="market-prob">{Math.round(predictions.over25?.prob * 100)}%</span>
-                        <span className="market-indicator">{predictions.over25?.tip === 'SIM' ? '🟢' : '🔴'}</span>
+                        <i className={`fa fa-circle market-indicator ${predictions.over25?.tip === 'SIM' ? 'text-green' : 'text-red'}`}></i>
                     </div>
                     <div className="market-item">
                         <span className="market-name">Ambas Marcam (BTTS)</span>
                         <span className="market-prob">{Math.round(predictions.btts?.prob * 100)}%</span>
-                        <span className="market-indicator">{predictions.btts?.tip === 'SIM' ? '🟢' : '🔴'}</span>
+                        <i className={`fa fa-circle market-indicator ${predictions.btts?.tip === 'SIM' ? 'text-green' : 'text-red'}`}></i>
                     </div>
                 </div>
             </div>
@@ -455,12 +455,12 @@ function PredictionsTab({ match, analysis, loading }) {
             {/* Insights */}
             {analysis?.insights?.length > 0 && (
                 <div className="insights-section">
-                    <h3 className="section-title">💡 Insights</h3>
+                    <h3 className="section-title"><i className="fa fa-lightbulb"></i> Insights</h3>
                     <div className="insights-list">
                         {analysis.insights.slice(0, 3).map((ins, i) => (
                             <div key={i} className="insight-item">
                                 <span className="insight-text">{ins.text}</span>
-                                <span className="insight-reason">Por quê: {ins.reason}</span>
+                                <span className="insight-reason">Por que: {ins.reason}</span>
                             </div>
                         ))}
                     </div>

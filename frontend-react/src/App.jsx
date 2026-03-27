@@ -7,6 +7,10 @@ import MatchList from './components/MatchList';
 import MatchDetail from './components/MatchDetail';
 import BetsaveButton from './components/BetsaveButton';
 import BetsavePanel from './components/BetsavePanel';
+import Onboarding, { ProfileSelector, PROFILES } from './components/Onboarding';
+import BetSlip from './components/BetSlip';
+import './components/Onboarding.css';
+import './components/BetSlip.css';
 
 const FALLBACK_MATCHES = [
     { id: '1', home: 'Flamengo', away: 'Palmeiras', league: 'Brasileirão Série A', status: 'INPLAY', homeScore: 1, awayScore: 0, time: '71:54', odds: { home: 1.85, draw: 3.40, away: 4.20 }, homeRisk: { level: 'BAIXO', emoji: '🟢', color: '#00ff88' }, awayRisk: { level: 'ALTO', emoji: '🔴', color: '#ff5252' }, category: 'national' },
@@ -31,7 +35,10 @@ export default function App() {
     const [showEsoccer, setShowEsoccer] = useState(false);
     const [selectedMatch, setSelectedMatch] = useState(null);
     const [betsaveOpen, setBetsaveOpen] = useState(false);
+    const [betslipOpen, setBetslipOpen] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [profile, setProfile] = useState(null);
+    const [bets, setBets] = useState([]);
     const [favorites, setFavorites] = useState(() => {
         try {
             const saved = localStorage.getItem('betsave_favorites');
@@ -51,6 +58,21 @@ export default function App() {
 
     useEffect(() => {
         fetchMatches();
+        
+        // Restore profile from localStorage
+        try {
+            const savedProfile = localStorage.getItem('betsave_profile');
+            if (savedProfile) {
+                setProfile(JSON.parse(savedProfile));
+            }
+        } catch {}
+    }, []);
+    
+    const handleProfileComplete = useCallback((selectedProfile) => {
+        setProfile(selectedProfile);
+        try {
+            localStorage.setItem('betsave_profile', JSON.stringify(selectedProfile));
+        } catch {}
     }, []);
 
     const fetchMatches = async () => {
@@ -82,6 +104,8 @@ export default function App() {
                     homeScore: m.homeScore ?? (m.score ? parseInt(m.score.split('-')[0]) : null),
                     awayScore: m.awayScore ?? (m.score ? parseInt(m.score.split('-')[1]) : null),
                     time: m.time || m.startTime,
+                    date: m.date || '',
+                    isoDate: m.isoDate || '',
                     league: m.league || 'Liga',
                     country: m.country,
                     status: isLive ? 'INPLAY' : 'SCHEDULED',
@@ -139,6 +163,22 @@ export default function App() {
             return [...prev, matchId];
         });
     }, []);
+    
+    const handleAddToSlip = useCallback((bet) => {
+        setBets(prev => {
+            const exists = prev.find(b => b.matchId === bet.matchId && b.market === bet.market);
+            if (exists) return prev;
+            return [...prev, bet];
+        });
+    }, []);
+    
+    const handleRemoveBet = useCallback((index) => {
+        setBets(prev => prev.filter((_, i) => i !== index));
+    }, []);
+    
+    const handleClearBets = useCallback(() => {
+        setBets([]);
+    }, []);
 
     const handleMatchClick = useCallback((match) => {
         console.log('[BetSave] Jogo selecionado:', match.home, 'vs', match.away);
@@ -185,6 +225,10 @@ export default function App() {
 
     return (
         <div className="layout">
+            {!profile && (
+                <Onboarding onComplete={handleProfileComplete} />
+            )}
+            
             <Sidebar 
                 selected={league} 
                 onSelect={setLeague}
@@ -196,6 +240,10 @@ export default function App() {
             
             <main className="main-content">
                 <Header onMenuClick={() => setSidebarOpen(true)} />
+                <ProfileSelector 
+                    currentProfile={profile}
+                    onChange={setProfile}
+                />
                 
                 {error && (
                     <div className="error-banner">
@@ -224,7 +272,7 @@ export default function App() {
                         className={`tab-btn ${tab === 'favorites' ? 'active' : ''}`}
                         onClick={() => setTab('favorites')}
                     >
-                        <span className="tab-icon">⭐</span>
+                        <i className="fa fa-star tab-icon"></i>
                         Favoritos
                         <span className="tab-count">{favoriteMatches.length}</span>
                     </button>
@@ -236,27 +284,27 @@ export default function App() {
                             className={`live-subtab ${liveSubTab === 'all' ? 'active' : ''}`}
                             onClick={() => setLiveSubTab('all')}
                         >
-                            🇧🇷 Todos
+                            <i className="fa fa-globe"></i> Todos
                         </button>
                         <button 
                             className={`live-subtab ${liveSubTab === 'national' ? 'active' : ''}`}
                             onClick={() => setLiveSubTab('national')}
                         >
-                            🇧🇷 Nacionais
+                            <i className="fa fa-flag"></i> Nacionais
                             <span className="tab-count">{counts.national}</span>
                         </button>
                         <button 
                             className={`live-subtab ${liveSubTab === 'international' ? 'active' : ''}`}
                             onClick={() => setLiveSubTab('international')}
                         >
-                            🌍 Internacionais
+                            <i className="fa fa-earth-americas"></i> Internacionais
                             <span className="tab-count">{counts.international}</span>
                         </button>
                         <button 
                             className={`live-subtab esoccer-toggle ${showEsoccer ? 'active' : ''}`}
                             onClick={() => setShowEsoccer(!showEsoccer)}
                         >
-                            🎮 E-Soccer
+                            <i className="fa fa-gamepad"></i> E-Soccer
                             <span className="tab-count">{counts.esoccer}</span>
                         </button>
                     </div>
@@ -267,6 +315,7 @@ export default function App() {
                     onSelect={handleMatchClick}
                     favorites={favorites}
                     onToggleFavorite={toggleFavorite}
+                    onAddToSlip={handleAddToSlip}
                     loading={loading}
                     onRefresh={fetchMatches}
                 />
@@ -279,14 +328,65 @@ export default function App() {
                 />
             )}
 
-            <BetsaveButton onClick={() => setBetsaveOpen(true)} />
-            
-            {betsaveOpen && (
-                <BetsavePanel 
-                    match={selectedMatch} 
-                    onClose={() => setBetsaveOpen(false)} 
+            {bets.length > 0 ? (
+                <div className="betslip-fixed">
+                    <BetSlip
+                        bets={bets}
+                        onRemoveBet={handleRemoveBet}
+                        onClear={handleClearBets}
+                        onClose={() => setBetslipOpen(false)}
+                    />
+                </div>
+            ) : (
+                <div className="betslip-fixed">
+                    <div className="betslip-empty-state">
+                        <div className="betslip-header">
+                            <div className="betslip-title">
+                                <i className="fa fa-ticket betslip-icon"></i>
+                                Bilhete
+                            </div>
+                        </div>
+                        <div className="betslip-fixed-empty">
+                            <i className="fa fa-list betslip-empty-icon"></i>
+                            <span className="betslip-empty-text">
+                                Adicione apostas para criar seu bilhete
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {bets.length > 0 && (
+                <button 
+                    className="betslip-toggle-btn"
+                    onClick={() => setBetslipOpen(true)}
+                >
+                    <i className="fa fa-ticket"></i> Bilhete ({bets.length})
+                </button>
+            )}
+
+            {betslipOpen && (
+                <BetSlip
+                    bets={bets}
+                    onRemoveBet={handleRemoveBet}
+                    onClear={handleClearBets}
+                    onClose={() => setBetslipOpen(false)}
                 />
             )}
+
+            <BetsaveButton 
+                onClick={() => setBetsaveOpen(!betsaveOpen)} 
+                profile={profile}
+                betsCount={bets.length}
+            />
+            
+            <BetsavePanel 
+                match={selectedMatch} 
+                onClose={() => setBetsaveOpen(false)}
+                onMinimize={() => setBetsaveOpen(false)}
+                isOpen={betsaveOpen}
+                liveMatches={matches}
+            />
         </div>
     );
 }

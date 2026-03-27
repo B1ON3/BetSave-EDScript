@@ -1,8 +1,6 @@
 import { formatTime } from '../utils';
 
-export default function MatchList({ matches, onSelect, favorites, onToggleFavorite, loading, onRefresh }) {
-    console.log('[MatchList] Props:', { matchesCount: matches?.length, loading, favoritesCount: favorites?.length });
-    
+export default function MatchList({ matches, onSelect, favorites, onToggleFavorite, onAddToSlip, loading, onRefresh }) {
     if (loading) {
         return (
             <div className="match-list">
@@ -16,10 +14,10 @@ export default function MatchList({ matches, onSelect, favorites, onToggleFavori
     if (!matches || matches.length === 0) {
         return (
             <div className="match-list-empty">
-                <div className="match-list-empty-icon">⚽</div>
+                <div className="match-list-empty-icon"><i className="fa fa-futbol"></i></div>
                 <h3>Nenhum jogo encontrado</h3>
                 <p>Tente selecionar outra liga ou aguarde novos jogos.</p>
-                <button onClick={onRefresh}>🔄 Tentar novamente</button>
+                <button onClick={onRefresh}><i className="fa fa-refresh"></i> Tentar novamente</button>
             </div>
         );
     }
@@ -39,7 +37,7 @@ export default function MatchList({ matches, onSelect, favorites, onToggleFavori
                         isFavorite={favorites.includes(match.id)}
                         onToggle={onToggleFavorite}
                     />
-                    <MatchOdds match={match} />
+                    <MatchOdds match={match} onAddToSlip={onAddToSlip} />
                 </div>
             ))}
         </div>
@@ -89,10 +87,10 @@ function MatchTeams({ match }) {
             {isLive && match.homeRisk && (
                 <>
                     <span className="risk-indicator" title={`${match.homeRisk.level || 'MEDIO'} risco`}>
-                        {match.homeRisk.emoji || '🟡'}
+                        <i className={`fa fa-circle ${match.homeRisk?.level === 'BAIXO' ? 'text-green' : match.homeRisk?.level === 'ALTO' ? 'text-red' : 'text-yellow'}`}></i>
                     </span>
                     <span className="risk-indicator" title={`${match.awayRisk?.level || 'MEDIO'} risco`}>
-                        {match.awayRisk?.emoji || '🟡'}
+                        <i className={`fa fa-circle ${match.awayRisk?.level === 'BAIXO' ? 'text-green' : match.awayRisk?.level === 'ALTO' ? 'text-red' : 'text-yellow'}`}></i>
                     </span>
                 </>
             )}
@@ -110,24 +108,35 @@ function MatchFavorite({ matchId, isFavorite, onToggle }) {
                     onToggle(matchId);
                 }}
             >
-                {isFavorite ? '⭐' : '☆'}
+                {isFavorite ? <i className="fa fa-star"></i> : <i className="fa fa-star-o"></i>}
             </button>
         </div>
     );
 }
 
-function MatchOdds({ match }) {
+function MatchOdds({ match, onAddToSlip }) {
     const odds = match.odds || { home: 1.50, draw: 3.50, away: 2.50 };
     
+    const handleAddToSlip = (market, odd, type) => {
+        onAddToSlip({
+            matchId: match.id,
+            match: `${match.home} vs ${match.away}`,
+            league: match.league,
+            market,
+            type,
+            odd
+        });
+    };
+    
     return (
-        <div className="match-odds">
-            <button className="odds-btn">
+        <div className="match-odds" onClick={(e) => e.stopPropagation()}>
+            <button className="odds-btn" onClick={() => handleAddToSlip('Resultado Final', odds.home || 1.50, match.home)}>
                 {typeof odds.home === 'number' ? odds.home.toFixed(2) : '1.50'}
             </button>
-            <button className="odds-btn">
+            <button className="odds-btn" onClick={() => handleAddToSlip('Empate', odds.draw || 3.50, 'Empate')}>
                 {typeof odds.draw === 'number' ? odds.draw.toFixed(2) : '3.50'}
             </button>
-            <button className="odds-btn">
+            <button className="odds-btn" onClick={() => handleAddToSlip('Resultado Final', odds.away || 2.50, match.away)}>
                 {typeof odds.away === 'number' ? odds.away.toFixed(2) : '2.50'}
             </button>
         </div>

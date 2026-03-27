@@ -13,6 +13,7 @@ const {
     generateMockMatches,
     convertToBrazilTime 
 } = require('../utils/helpers');
+const { loadAllMatches, getTeamStats } = require('../utils/data_loader');
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = path.join(__dirname, '..', '..');
@@ -611,6 +612,36 @@ const server = http.createServer((req, res) => {
         return;
     }
     
+    if (req.url.startsWith('/api/match/')) {
+        const matchId = req.url.split('/')[3];
+        
+        (async () => {
+            const data = await makeApiRequest('/v1/events/view', { event_id: matchId });
+            
+            if (data?.results) {
+                const match = normalizeMatch(data.results);
+                const events = data.results.incidents || [];
+                
+                const formattedEvents = events.map(e => ({
+                    type: e.type === 'goal' ? 'GOOL' : e.type === 'yellowcard' ? 'CARTÃO' : e.type === 'redcard' ? 'CARTÃO VERMELHO' : 'EVENTO',
+                    player: e.player || e.name,
+                    time: e.time,
+                    team: e.side === 'home' ? 'home' : 'away'
+                }));
+                
+                res.end(JSON.stringify({
+                    success: true,
+                    match,
+                    events: formattedEvents,
+                    stats: data.results.stats || null
+                }));
+            } else {
+                res.end(JSON.stringify({ success: false, error: 'Partida não encontrada' }));
+            }
+        })();
+        return;
+    }
+    
     if (req.url === '/api/brazil') {
         (async () => {
             const data = await fetchUpcomingMatches();
@@ -1025,6 +1056,143 @@ const server = http.createServer((req, res) => {
         
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({ standings: brazilianTeams }));
+        return;
+    }
+    
+    if (req.url === '/api/validate-predictions') {
+        console.log('═'.repeat(50));
+        console.log('📊 Validando previsões...');
+        
+        const historicalMatches = loadAllMatches();
+        
+        if (historicalMatches.length === 0) {
+            res.end(JSON.stringify({ error: 'Sem dados históricos disponíveis', totalMatches: 0 }));
+            return;
+        }
+        
+        const results = {
+            totalAnalyzed: 0,
+            correctResults: 0,
+            correctWinners: 0,
+            correctOver25: 0,
+            correctBTTS: 0,
+            marketAccuracy: {},
+            matchDetails: [],
+            summary: {}
+        };
+        
+        const analyzedMatches = historicalMatches.slice(0, 50);
+        
+        for (const match of analyzedMatches) {
+            const homeTeam = match.home_team?.home_team_name;
+            const awayTeam = match.away_team?.away_team_name;
+            const homeScore = match.home_score;
+            const awayScore = match.away_score;
+            
+            if (!homeTeam || !awayTeam || homeScore === undefined || awayScore === undefined) {
+                continue;
+            }
+            
+            try {
+                const analysis = analyzeMatch(homeTeam, awayTeam);
+                
+                if (!analysis || !analysis.markets) continue;
+                
+                results.totalAnalyzed++;
+                
+                const actualWinner = homeScore > awayScore ? 'home' : homeScore < awayScore ? 'away' : 'draw';
+                const totalGoals = homeScore + awayScore;
+                const bothScored = homeScore > 0 && awayScore > 0;
+                
+                for (const market of analysis.markets) {
+                    if (!results.marketAccuracy[market.type]) {
+                        results.marketAccuracy[market.type] = { correct: 0, total: 0 };
+                    }
+                    results.marketAccuracy[market.type].total++;
+                    
+                    let prediction = '';
+                    let actual = '';
+                    
+                    if (market.type.includes('VITÓRIA') && market.type.includes(homeTeam.toUpperCase())) {
+                        prediction = 'home';
+                    } else if (market.type.includes('VITÓRIA') && market.type.includes(awayTeam.toUpperCase())) {
+                        prediction = 'away';
+                    } else if (market.type === 'EMPATE') {
+                        prediction = 'draw';
+                    } else if (market.type.includes('OVER 2.5') || market.type.includes('2.5')) {
+                        prediction = totalGoals > 2.5 ? 'over' : 'under';
+                        actual = totalGoals > 2.5 ? 'over' : 'under';
+                    } else if (market.type.includes('AMBOS') || market.type.includes('BTTS')) {
+                        prediction = bothScored ? 'yes' : 'no';
+                        actual = bothScored ? 'yes' : 'no';
+                    }
+                    
+                    if (prediction === actual) {
+                        results.marketAccuracy[market.type].correct++;
+                    }
+                }
+                
+                const homeWinMarket = analysis.markets.find(m => m.type.includes('VITÓRIA') && m.type.includes(homeTeam.toUpperCase()));
+                const awayWinMarket = analysis.markets.find(m => m.type.includes('VITÓRIA') && m.type.includes(awayTeam.toUpperCase()));
+                const drawMarket = analysis.markets.find(m => m.type === 'EMPATE');
+                
+                let predictedWinner = 'draw';
+                if (homeWinMarket && homeWinMarket.probability > awayWinMarket?.probability && homeWinMarket.probability > (drawMarket?.probability || 0)) {
+                    predictedWinner = 'home';
+                } else if (awayWinMarket && awayWinMarket.probability > (homeWinMarket?.probability || 0) && awayWinMarket.probability > (drawMarket?.probability || 0)) {
+                    predictedWinner = 'away';
+                }
+                
+                if (predictedWinner === actualWinner) {
+                    results.correctWinners++;
+                }
+                
+                const over25Market = analysis.markets.find(m => m.type.includes('OVER') && m.type.includes('2.5'));
+                if (over25Market) {
+                    const predictedOver25 = over25Market.probability > 0.5;
+                    if (predictedOver25 === (totalGoals > 2.5)) {
+                        results.correctOver25++;
+                    }
+                }
+                
+                const bttsMarket = analysis.markets.find(m => m.type.includes('AMBOS') || m.type.includes('BTTS'));
+                if (bttsMarket) {
+                    const predictedBTTS = bttsMarket.probability > 0.5;
+                    if (predictedBTTS === bothScored) {
+                        results.correctBTTS++;
+                    }
+                }
+                
+                if (results.matchDetails.length < 10) {
+                    results.matchDetails.push({
+                        home: homeTeam,
+                        away: awayTeam,
+                        score: `${homeScore}-${awayScore}`,
+                        predictedWinner,
+                        actualWinner,
+                        correct: predictedWinner === actualWinner
+                    });
+                }
+                
+            } catch (e) {
+                console.log(`Erro ao analisar ${homeTeam} vs ${awayTeam}: ${e.message}`);
+            }
+        }
+        
+        results.summary = {
+            winnerAccuracy: results.totalAnalyzed > 0 ? ((results.correctWinners / results.totalAnalyzed) * 100).toFixed(1) : 0,
+            over25Accuracy: results.correctOver25 > 0 ? ((results.correctOver25 / results.totalAnalyzed) * 100).toFixed(1) : 0,
+            bttsAccuracy: results.correctBTTS > 0 ? ((results.correctBTTS / results.totalAnalyzed) * 100).toFixed(1) : 0,
+            totalMatches: results.totalAnalyzed
+        };
+        
+        console.log(`✅ Analisados ${results.totalAnalyzed} jogos`);
+        console.log(`📊 Acerto de favoritos: ${results.summary.winnerAccuracy}%`);
+        console.log(`📊 Acerto Over 2.5: ${results.summary.over25Accuracy}%`);
+        console.log('═'.repeat(50));
+        
+        res.setHeader('Content-Type', 'application/json');
+        res.end(JSON.stringify(results));
         return;
     }
     

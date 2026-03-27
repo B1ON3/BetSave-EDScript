@@ -89,6 +89,9 @@ function cleanLeagueName(name) {
  */
 function normalizeMatch(m, includeOdds = false) {
     const time = convertToBrazilTime(m.time);
+    const ms = parseInt(m.time) * 1000;
+    const matchDate = new Date(ms);
+    const isoDate = matchDate.toISOString().split('T')[0];
     
     return {
         id: m.id,
@@ -100,6 +103,7 @@ function normalizeMatch(m, includeOdds = false) {
         localTime: time?.local,
         time: time?.time,
         date: time?.date,
+        isoDate: isoDate,
         dayName: time?.dayName,
         league: cleanLeagueName(m.league?.name),
         leaguecc: m.league?.cc,

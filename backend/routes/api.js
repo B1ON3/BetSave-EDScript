@@ -110,10 +110,14 @@ function handleOdds(req, res, matchId) {
     const token = req.token;
     
     fetchMatchOdds(matchId, token).then(data => {
-        if (data?.results?.odds) {
-            const odds = extractOdds(data.results.odds);
-            const bttsOdds = data.results.odds['17_1']?.[0] || {};
-            
+        const odds = data?.results?.odds ? extractOdds(data.results.odds) : null;
+        const bttsOdds = data?.results?.odds?.['17_1']?.[0] || {};
+        
+        console.log('📊 Odds debug:', { odds, hasData: odds?.home || odds?.draw || odds?.away });
+        
+        const hasValidOdds = odds && (odds.home !== null || odds.draw !== null || odds.away !== null);
+        
+        if (hasValidOdds) {
             res.end(JSON.stringify({
                 success: true,
                 odds,

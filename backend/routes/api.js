@@ -50,9 +50,19 @@ function handleLive(req, res) {
     fetchLiveMatches(token).then(data => {
         if (data?.results && data.results.length > 0) {
             const matches = data.results.map(m => normalizeMatch(m));
-            res.end(JSON.stringify({ matches, source: 'api', total: matches.length }));
+            res.end(JSON.stringify({ 
+                matches, 
+                source: 'api', 
+                total: matches.length 
+            }));
         } else {
-            res.end(JSON.stringify({ matches: [], source: 'api', total: 0 }));
+            const mockLive = mockData.generateMockMatches(5, true);
+            res.end(JSON.stringify({ 
+                matches: mockLive.map(m => normalizeMatch(m)), 
+                source: 'mock', 
+                total: mockLive.length,
+                warning: 'Nenhum jogo ao vivo disponivel - usando dados simulados'
+            }));
         }
     });
 }
@@ -76,10 +86,22 @@ function handleMatchById(req, res, matchId) {
                 success: true,
                 match,
                 events: formattedEvents,
-                stats: data.results.stats || null
+                stats: data.results.stats || null,
+                source: 'api'
             }));
         } else {
-            res.end(JSON.stringify({ success: false, error: 'Partida não encontrada' }));
+            const mockMatch = mockData.generateLiveMatch(parseInt(matchId) || 1234567);
+            const mockStats = mockData.generateMatchStats(mockMatch.home.name, mockMatch.away.name);
+            const mockEvents = mockData.generateMatchEvents(mockMatch.home.name, mockMatch.away.name);
+            
+            res.end(JSON.stringify({
+                success: true,
+                match: normalizeMatch(mockMatch),
+                events: mockEvents,
+                stats: mockStats,
+                source: 'mock',
+                warning: 'Dados simulados para demonstracao'
+            }));
         }
     });
 }
@@ -95,10 +117,28 @@ function handleOdds(req, res, matchId) {
             res.end(JSON.stringify({
                 success: true,
                 odds,
-                btts: { yes: bttsOdds.yes, no: bttsOdds.no }
+                btts: { yes: bttsOdds.yes, no: bttsOdds.no },
+                source: 'api'
             }));
         } else {
-            res.end(JSON.stringify({ success: false, error: 'Odds não disponíveis' }));
+            const mockOdds = {
+                home: (1.80 + Math.random() * 1.5).toFixed(2),
+                draw: (3.00 + Math.random() * 1.0).toFixed(2),
+                away: (2.50 + Math.random() * 3.0).toFixed(2),
+                over25: (1.65 + Math.random() * 0.5).toFixed(2),
+                under25: (2.00 + Math.random() * 0.5).toFixed(2)
+            };
+            
+            res.end(JSON.stringify({
+                success: true,
+                odds: mockOdds,
+                btts: {
+                    yes: (1.70 + Math.random() * 0.5).toFixed(2),
+                    no: (1.90 + Math.random() * 0.4).toFixed(2)
+                },
+                source: 'mock',
+                warning: 'Odds simuladas'
+            }));
         }
     });
 }
@@ -142,9 +182,11 @@ async function handleAnalyze(req, res, home, away) {
     
     if (matchInfo && marketOdds) {
         analysis = analyzeMatch(homeDec, awayDec, marketOdds);
+        analysis.source = 'api';
     } else {
         console.log('📊 Usando dados mock realistas...');
         analysis = mockData.generatePredictionForMatch(homeDec, awayDec, marketOdds);
+        analysis.source = 'mock';
     }
     
     if (matchInfo) {

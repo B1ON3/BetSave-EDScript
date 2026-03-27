@@ -10,14 +10,18 @@ export default function MatchAnalysis({ match }) {
 
     useEffect(() => {
         if (match?.id) {
-            fetchMatchDetails(match.id);
+            fetchMatchDetails(match.id, match.home, match.away);
             fetchMatchAnalysis(match.home, match.away);
         }
     }, [match]);
 
-    const fetchMatchDetails = async (matchId) => {
+    const fetchMatchDetails = async (matchId, home, away) => {
         try {
-            const res = await fetch(`${API}/api/match/${matchId}`);
+            let url = `${API}/api/match/${matchId}`;
+            if (home && away) {
+                url += `?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`;
+            }
+            const res = await fetch(url);
             if (res.ok) {
                 const data = await res.json();
                 if (data.success) {

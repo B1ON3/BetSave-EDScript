@@ -69,6 +69,11 @@ function handleLive(req, res) {
 
 function handleMatchById(req, res, matchId) {
     const token = req.token;
+    const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
+    const homeTeam = urlObj.searchParams.get('home');
+    const awayTeam = urlObj.searchParams.get('away');
+    
+    console.log(`📌 Match request: ID=${matchId}, home=${homeTeam}, away=${awayTeam}`);
     
     fetchMatchDetails(matchId, token).then(data => {
         if (data?.results) {
@@ -97,9 +102,12 @@ function handleMatchById(req, res, matchId) {
                 source: 'api'
             }));
         } else {
-            const mockMatch = mockData.generateLiveMatch(parseInt(matchId) || 1234567);
-            const mockStats = mockData.generateMatchStats(mockMatch.home.name, mockMatch.away.name);
-            const mockEvents = mockData.generateMatchEvents(mockMatch.home.name, mockMatch.away.name);
+            const actualHome = homeTeam || 'Time Casa';
+            const actualAway = awayTeam || 'Time Fora';
+            
+            const mockMatch = mockData.generateLiveMatch(parseInt(matchId) || 1234567, actualHome, actualAway);
+            const mockStats = mockData.generateMatchStats(actualHome, actualAway);
+            const mockEvents = mockData.generateMatchEvents(actualHome, actualAway);
             
             res.end(JSON.stringify({
                 success: true,

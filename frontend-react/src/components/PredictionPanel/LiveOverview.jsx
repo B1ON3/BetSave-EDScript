@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 function formatMatchForUI(m) {
     const predictions = generatePredictions(m);
@@ -40,38 +40,45 @@ function generatePredictions(m) {
 export default function LiveOverview({ matches, onSelectMatch }) {
     const [selectedDate, setSelectedDate] = useState('live');
     const [customDate, setCustomDate] = useState('');
+    const [selectedLeague, setSelectedLeague] = useState('all');
 
     const today = new Date().toISOString().split('T')[0];
-    
+
+    const leagues = useMemo(() => {
+        if (!matches || matches.length === 0) return [];
+        const leagueSet = new Set(matches.map(m => m.league).filter(Boolean));
+        return Array.from(leagueSet).sort();
+    }, [matches]);
+
     const getFilteredMatches = () => {
         if (!matches) return [];
         
-        if (selectedDate === 'live') {
-            return matches.filter(m => m.status === 'INPLAY' || m.status === 'live');
-        }
+        let filtered = [...matches];
         
-        if (selectedDate === 'today') {
-            return matches.filter(m => {
+        if (selectedDate === 'live') {
+            filtered = filtered.filter(m => m.status === 'INPLAY' || m.status === 'live');
+        } else if (selectedDate === 'today') {
+            filtered = filtered.filter(m => {
                 if (m.status === 'INPLAY' || m.status === 'live') return false;
                 return m.isoDate === today;
             });
-        }
-        
-        if (selectedDate === 'tomorrow') {
+        } else if (selectedDate === 'tomorrow') {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowStr = tomorrow.toISOString().split('T')[0];
-            return matches.filter(m => {
+            filtered = filtered.filter(m => {
                 if (m.status === 'INPLAY' || m.status === 'live') return false;
                 return m.isoDate === tomorrowStr;
             });
+        } else if (selectedDate === 'custom' && customDate) {
+            filtered = filtered.filter(m => m.isoDate === customDate);
         }
         
-        if (selectedDate === 'custom' && customDate) {
-            return matches.filter(m => m.isoDate === customDate);
+        if (selectedLeague !== 'all') {
+            filtered = filtered.filter(m => m.league === selectedLeague);
         }
         
-        return matches;
+        return filtered;
     };
 
     const filteredMatches = getFilteredMatches();
@@ -114,7 +121,7 @@ export default function LiveOverview({ matches, onSelectMatch }) {
 
     return (
         <div className="betsave-overview" style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
-            <div className="date-filter-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div className="date-filter-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div className="date-tabs" style={{ display: 'flex', gap: '4px' }}>
                     <button 
                         className={`date-tab live ${selectedDate === 'live' ? 'active' : ''}`}
@@ -148,6 +155,39 @@ export default function LiveOverview({ matches, onSelectMatch }) {
                 </div>
             </div>
             
+            <div className="league-filter" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <button
+                    className={`league-tab ${selectedLeague === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedLeague('all')}
+                    style={{ padding: '6px 12px', background: selectedLeague === 'all' ? '#6366f1' : '#222', border: '1px solid #333', borderRadius: '16px', color: '#fff', fontSize: '11px', cursor: 'pointer' }}
+                >
+                    Todas
+                </button>
+                {leagues.slice(0, 10).map(league => (
+                    <button
+                        key={league}
+                        className={`league-tab ${selectedLeague === league ? 'active' : ''}`}
+                        onClick={() => setSelectedLeague(league)}
+                        style={{ 
+                            padding: '6px 12px', 
+                            background: selectedLeague === league ? '#6366f1' : '#222', 
+                            border: '1px solid #333', 
+                            borderRadius: '16px', 
+                            color: '#fff', 
+                            fontSize: '11px', 
+                            cursor: 'pointer',
+                            maxWidth: '150px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}
+                        title={league}
+                    >
+                        {league}
+                    </button>
+                ))}
+            </div>
+            
             {selectedDate === 'custom' && (
                 <div className="custom-date-input">
                     <input 
@@ -157,6 +197,7 @@ export default function LiveOverview({ matches, onSelectMatch }) {
                             setCustomDate(e.target.value);
                             setSelectedDate('custom');
                         }}
+                        style={{ padding: '8px', background: '#111', border: '1px solid #333', borderRadius: '8px', color: '#fff' }}
                     />
                 </div>
             )}

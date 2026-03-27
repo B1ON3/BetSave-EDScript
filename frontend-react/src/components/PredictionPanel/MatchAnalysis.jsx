@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
 import { API } from '../../utils';
-import { ANALYSIS_TABS } from './PredictionContext';
+import { ANALYSIS_TABS, usePrediction } from './PredictionContext';
 
 export default function MatchAnalysis({ match }) {
+    const { analysisTab, setAnalysisTab } = usePrediction();
     const [lineupTab, setLineupTab] = useState('confirmada');
     const [matchDetails, setMatchDetails] = useState(null);
+    const [analysis, setAnalysis] = useState(null);
 
     useEffect(() => {
         if (match?.id) {
             fetchMatchDetails(match.id);
+            fetchMatchAnalysis(match.home, match.away);
         }
     }, [match]);
 
@@ -26,11 +29,24 @@ export default function MatchAnalysis({ match }) {
         }
     };
 
+    const fetchMatchAnalysis = async (home, away) => {
+        if (!home || !away) return;
+        try {
+            const res = await fetch(`${API}/api/analyze?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAnalysis(data);
+            }
+        } catch (err) {
+            console.log('Erro ao buscar análise:', err);
+        }
+    };
+
     return (
         <div className="match-analysis">
             <MatchHeader match={match} />
-            <AnalysisTabs match={match} />
-            <TabContent match={match} matchDetails={matchDetails} lineupTab={lineupTab} setLineupTab={setLineupTab} />
+            <AnalysisTabs match={match} activeTab={analysisTab} onTabChange={setAnalysisTab} />
+            <TabContent match={match} matchDetails={matchDetails} analysis={analysis} lineupTab={lineupTab} setLineupTab={setLineupTab} activeTab={analysisTab} onTabChange={setAnalysisTab} />
         </div>
     );
 }
@@ -55,16 +71,14 @@ function MatchHeader({ match }) {
     );
 }
 
-function AnalysisTabs({ match }) {
-    const [activeTab, setActiveTab] = useState('Visao Geral');
-    
+function AnalysisTabs({ match, activeTab, onTabChange }) {
     return (
         <div className="analysis-tabs-container">
             {ANALYSIS_TABS.map(tab => (
                 <button 
                     key={tab}
                     className={`analysis-tab ${activeTab === tab ? 'active' : ''}`}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => onTabChange(tab)}
                 >
                     {tab}
                 </button>
@@ -73,54 +87,28 @@ function AnalysisTabs({ match }) {
     );
 }
 
-function TabContent({ match, matchDetails, lineupTab, setLineupTab }) {
-    const [activeTab, setActiveTab] = useState('Visao Geral');
-    
+function TabContent({ match, matchDetails, analysis, lineupTab, setLineupTab, activeTab, onTabChange }) {
     return (
         <div className="analysis-tab-content">
             {activeTab === 'Visao Geral' && (
-                <OverviewTab match={match} matchDetails={matchDetails} />
+                <OverviewTab match={match} matchDetails={matchDetails} analysis={analysis} />
             )}
             {activeTab === 'Escalacao' && (
                 <LineupTab match={match} activeLineupTab={lineupTab} onLineupTabChange={setLineupTab} />
             )}
             {activeTab === 'Estatisticas' && (
-                <StatsTab match={match} />
+                <StatsTab match={match} matchDetails={matchDetails} analysis={analysis} />
             )}
             {activeTab === 'Previsao' && (
-                <PredictionsTab match={match} />
+                <PredictionsTab match={match} analysis={analysis} />
             )}
         </div>
     );
 }
 
-function OverviewTab({ match, matchDetails }) {
-    const [teamAnalysis, setTeamAnalysis] = useState(null);
+function OverviewTab({ match, matchDetails, analysis }) {
     const [liveEvents, setLiveEvents] = useState([]);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        if (!match?.home || !match?.away) return;
-        
-        const fetchTeamAnalysis = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch(
-                    `${API}/api/analyze?home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    setTeamAnalysis(data);
-                }
-            } catch (err) {
-                console.error('Erro ao buscar analise:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTeamAnalysis();
-    }, [match?.home, match?.away]);
+    const teamAnalysis = analysis;
 
     useEffect(() => {
         if (!match?.id) return;
@@ -132,6 +120,8 @@ function OverviewTab({ match, matchDetails }) {
                     const data = await response.json();
                     if (data.events && data.events.length > 0) {
                         setLiveEvents(data.events);
+                    } else if (matchDetails?.events) {
+                        setLiveEvents(matchDetails.events);
                     }
                 }
             } catch (err) {
@@ -142,7 +132,7 @@ function OverviewTab({ match, matchDetails }) {
         fetchLiveEvents();
         const interval = setInterval(fetchLiveEvents, 30000);
         return () => clearInterval(interval);
-    }, [match?.id]);
+    }, [match?.id, matchDetails]);
 
     const getEventIcon = (type) => {
         if (type === 'GOOL' || type === 'goal' || type === 'Goal') return 'fa-futbol';
@@ -204,10 +194,20 @@ function OverviewTab({ match, matchDetails }) {
         { name: 'Finalizacoes', homeVal: stats.home?.shots || 10, awayVal: stats.away?.shots || 8, isPercent: false },
     ];
 
-    const recentForm = {
-        home: ['V', 'V', 'D', 'E', 'V'],
-        away: ['E', 'D', 'V', 'D', 'E']
+    const recentForm = teamAnalysis?.teams ? {
+        home: teamAnalysis.teams.home.recentForm || ['V', 'E', 'D', 'V', 'E'],
+        away: teamAnalysis.teams.away.recentForm || ['E', 'D', 'V', 'E', 'D']
+    } : {
+        home: ['V', 'E', 'D', 'V', 'E'],
+        away: ['E', 'D', 'V', 'E', 'D']
     };
+
+    const homeChance = teamAnalysis?.teams ? 
+        Math.round(teamAnalysis.markets?.find(m => m.type.includes('VITÓRIA') && m.type.includes(match.home.toUpperCase()))?.probability * 100 || 50)
+        : 50;
+    const awayChance = 100 - homeChance;
+    const confidence = teamAnalysis?.summary?.confidence || 75;
+    const riskLevel = teamAnalysis?.markets?.[0]?.risk?.level || 'MEDIO';
 
     const isLive = match?.status === 'live' || liveEvents.length > 0;
 
@@ -269,21 +269,21 @@ function OverviewTab({ match, matchDetails }) {
                 </div>
                 <div className="prediction-summary">
                     <div className="pred-main-row">
-                        <div className="pred-team-card winner">
+                        <div className={`pred-team-card ${homeChance > awayChance ? 'winner' : ''}`}>
                             <span className="pred-team-name">{match.home}</span>
                             <br/>
-                            <span className="pred-team-chance">65%</span>
+                            <span className="pred-team-chance">{homeChance}%</span>
                         </div>
                         <div className="pred-vs">VS</div>
-                        <div className="pred-team-card">
+                        <div className={`pred-team-card ${awayChance > homeChance ? 'winner' : ''}`}>
                             <span className="pred-team-name">{match.away}</span>
                             <br/>
-                            <span className="pred-team-chance">35%</span>
+                            <span className="pred-team-chance">{awayChance}%</span>
                         </div>
                     </div>
                     <div className="pred-meta-row">
-                        <span className="precision">Precisao: <strong>81%</strong></span>
-                        <span className="risk-badge medium">Risco Medio</span>
+                        <span className="precision">Precisao: <strong>{confidence}%</strong></span>
+                        <span className={`risk-badge ${riskLevel.toLowerCase()}`}>Risco {riskLevel === 'BAIXO' ? 'Baixo' : riskLevel === 'MEDIO' ? 'Medio' : 'Alto'}</span>
                     </div>
                 </div>
             </div>
@@ -321,20 +321,24 @@ function OverviewTab({ match, matchDetails }) {
                 <div className="match-details">
                     <div className="detail-row">
                         <span className="detail-icon"><i className="fa fa-trophy"></i></span>
-                        <span>Copa do Brasil - Quartas de Final</span>
+                        <span>{matchDetails?.match?.league || match.league || 'Liga Nacional'}</span>
                     </div>
                     <div className="detail-row">
                         <span className="detail-icon"><i className="fa fa-calendar"></i></span>
-                        <span>15/03/2026 as 21:00</span>
+                        <span>{matchDetails?.match?.localTime || match.localTime || match.startTime || 'A definir'}</span>
                     </div>
-                    <div className="detail-row">
-                        <span className="detail-icon"><i className="fa fa-tv"></i></span>
-                        <span>Globo / SporTV</span>
-                    </div>
-                    <div className="detail-row">
-                        <span className="detail-icon"><i className="fa fa-user"></i></span>
-                        <span>Arbitro: Rodrigo Carvalhao</span>
-                    </div>
+                    {match.stadium && (
+                        <div className="detail-row">
+                            <span className="detail-icon"><i className="fa fa-map-marker-alt"></i></span>
+                            <span>{match.stadium}</span>
+                        </div>
+                    )}
+                    {match.referee && (
+                        <div className="detail-row">
+                            <span className="detail-icon"><i className="fa fa-user"></i></span>
+                            <span>Arbitro: {match.referee}</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -343,18 +347,18 @@ function OverviewTab({ match, matchDetails }) {
 
 function LineupTab({ match, activeLineupTab, onLineupTabChange }) {
     const lineup = {
-        stadium: 'Maracana',
+        stadium: match?.stadium || 'Estadio Nacional',
         home: {
             formation: '4-3-3',
-            starters: ['Rossi', 'Matheuzinho', 'Leo Pereira', 'Fabricio Bruno', 'Vina', 'Ayrton Lucas', 'Gerson', 'Arrascaeta', 'Bruno Henrique', 'Pedro'],
-            reserves: ['Hugo Souza', 'Rodrigo Caio', 'Everton Ribeiro', 'Victor Hugo', 'Lazaro'],
-            unavailable: ['Gabigol (machucado)']
+            starters: ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4', 'Jogador 5', 'Jogador 6', 'Jogador 7', 'Jogador 8', 'Jogador 9', 'Jogador 10'],
+            reserves: ['Reserva 1', 'Reserva 2', 'Reserva 3', 'Reserva 4', 'Reserva 5'],
+            unavailable: []
         },
         away: {
             formation: '4-2-3-1',
-            starters: ['Puma', 'Paulo Henrique', 'Gabriel Dias', 'Mastriani', 'Anderson', 'Lauro', 'Gabriel Pec', 'Rossi', 'Vegetti', 'Payet'],
-            reserves: ['Ivan', 'Lucas', 'Bruno Gomes'],
-            unavailable: ['Payet (machucado)']
+            starters: ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4', 'Jogador 5', 'Jogador 6', 'Jogador 7', 'Jogador 8', 'Jogador 9', 'Jogador 10'],
+            reserves: ['Reserva 1', 'Reserva 2', 'Reserva 3'],
+            unavailable: []
         }
     };
 
@@ -464,46 +468,22 @@ function renderPlayersGrid(homePlayers, awayPlayers) {
     ));
 }
 
-function StatsTab({ match }) {
-    const [teamAnalysis, setTeamAnalysis] = useState(null);
-    const [loading, setLoading] = useState(false);
+function StatsTab({ match, matchDetails, analysis }) {
+    const teamAnalysis = analysis;
     const [mode, setMode] = useState('times');
-
-    useEffect(() => {
-        if (!match?.home || !match?.away) return;
-        
-        const fetchStats = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch(
-                    `${API}/api/analyze?home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    setTeamAnalysis(data);
-                }
-            } catch (err) {
-                console.error('Erro ao buscar estatisticas:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchStats();
-    }, [match?.home, match?.away]);
 
     const defaultStatsData = {
         'Geral': [
-            { name: 'Posse de bola', homeVal: 58, awayVal: 42, isPercent: true },
+            { name: 'Posse de bola', homeVal: teamAnalysis?.teams?.home?.possession || 50, awayVal: teamAnalysis?.teams?.away?.possession || 50, isPercent: true },
             { name: 'Passes', homeVal: 340, awayVal: 245, isPercent: false },
             { name: 'Faltas', homeVal: 10, awayVal: 14, isPercent: false },
             { name: 'Finalizacoes', homeVal: 12, awayVal: 8, isPercent: false },
         ],
         'Ataque': [
-            { name: 'Total Finalizacoes', homeVal: 12, awayVal: 8 },
-            { name: 'No Gol', homeVal: 5, awayVal: 3 },
-            { name: 'Escanteios', homeVal: 6, awayVal: 4 },
-            { name: 'Impedimentos', homeVal: 1, awayVal: 0 },
+            { name: 'Total Finalizacoes', homeVal: teamAnalysis?.teams?.home?.avgShotsOnTarget * 3 || 12, awayVal: teamAnalysis?.teams?.away?.avgShotsOnTarget * 3 || 8 },
+            { name: 'No Gol', homeVal: Math.round(teamAnalysis?.teams?.home?.avgShotsOnTarget || 5), awayVal: Math.round(teamAnalysis?.teams?.away?.avgShotsOnTarget || 3) },
+            { name: 'Gols/Jogo', homeVal: teamAnalysis?.teams?.home?.avgGoals || 1.5, awayVal: teamAnalysis?.teams?.away?.avgGoals || 1.0 },
+            { name: 'Ataque', homeVal: teamAnalysis?.teams?.home?.attackStrength || 3, awayVal: teamAnalysis?.teams?.away?.attackStrength || 2, isPercent: false, max: 5 },
         ],
         'Defesa': [
             { name: 'Desarmes', homeVal: 9, awayVal: 11 },
@@ -517,38 +497,29 @@ function StatsTab({ match }) {
 
     const playerStats = {
         topPasses: [
-            { name: 'Arrascaeta', value: 58, flag: 'BR', team: 'home' },
-            { name: 'Gerson', value: 75, flag: 'BR', team: 'home' },
-            { name: 'Puma', value: 42, flag: 'MX', team: 'away' },
+            { name: 'Jogador 1', value: 58, flag: 'BR', team: 'home' },
+            { name: 'Jogador 2', value: 45, flag: 'BR', team: 'home' },
+            { name: 'Jogador 3', value: 42, flag: 'MX', team: 'away' },
         ],
         topTouches: [
-            { name: 'Arrascaeta', value: 89, flag: 'BR', team: 'home' },
-            { name: 'Bruno Henrique', value: 72, flag: 'BR', team: 'home' },
-            { name: 'Vegetti', value: 45, flag: 'AR', team: 'away' },
+            { name: 'Jogador 1', value: 89, flag: 'BR', team: 'home' },
+            { name: 'Jogador 2', value: 72, flag: 'BR', team: 'home' },
+            { name: 'Jogador 3', value: 45, flag: 'AR', team: 'away' },
         ],
         topFouls: [
-            { name: 'Bruno Henrique', value: 3, flag: 'BR', team: 'home' },
-            { name: 'Payet', value: 2, flag: 'FR', team: 'away' },
-            { name: 'Gabriel Pec', value: 2, flag: 'BR', team: 'away' },
+            { name: 'Jogador 1', value: 3, flag: 'BR', team: 'home' },
+            { name: 'Jogador 2', value: 2, flag: 'FR', team: 'away' },
+            { name: 'Jogador 3', value: 2, flag: 'BR', team: 'away' },
         ],
     };
-
-    if (loading) {
-        return (
-            <div className="predictions-loading">
-                <div className="loading-spinner"></div>
-                <p>Carregando estatisticas...</p>
-            </div>
-        );
-    }
 
     return (
         <div className="stats-content">
             {teamAnalysis && (
                 <div className="stats-analysis-header">
-                    <span className={`source-badge ${teamAnalysis.dataSource === 'real' ? 'real' : 'estimated'}`}>
-                        <i className={`fa fa-${teamAnalysis.dataSource === 'real' ? 'database' : 'cloud'}`}></i>
-                        {teamAnalysis.dataSource === 'real' ? 'Dados Reais' : 'Estimativas'}
+                    <span className={`source-badge ${teamAnalysis.source === 'api' ? 'real' : 'estimated'}`}>
+                        <i className={`fa fa-${teamAnalysis.source === 'api' ? 'database' : 'cloud'}`}></i>
+                        {teamAnalysis.source === 'api' ? 'Dados Reais' : 'Estimativas'}
                     </span>
                 </div>
             )}
@@ -638,57 +609,44 @@ function StatsTab({ match }) {
     );
 }
 
-function PredictionsTab({ match }) {
-    const [analysis, setAnalysis] = useState(null);
+function PredictionsTab({ match, analysis }) {
     const [validation, setValidation] = useState(null);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (!match?.home || !match?.away) return;
-        
-        const fetchAnalysis = async () => {
+        const fetchValidation = async () => {
             setLoading(true);
-            
             try {
-                const [analysisRes, validationRes] = await Promise.all([
-                    fetch(`${API}/api/analyze?home=${encodeURIComponent(match.home)}&away=${encodeURIComponent(match.away)}`),
-                    fetch(`${API}/api/validate-predictions`)
-                ]);
-                
-                if (analysisRes.ok) {
-                    const data = await analysisRes.json();
-                    setAnalysis(data);
-                }
-                
+                const validationRes = await fetch(`${API}/api/validate-predictions`);
                 if (validationRes.ok) {
                     const valData = await validationRes.json();
                     setValidation(valData);
                 }
             } catch (err) {
-                console.error('Erro ao buscar análise:', err);
+                console.error('Erro ao buscar validacao:', err);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAnalysis();
-    }, [match?.home, match?.away]);
+        fetchValidation();
+    }, []);
 
-    const mockAnalysis = {
+    const defaultAnalysis = {
         summary: {
             tendency: `Jogo entre ${match?.home || 'Time Casa'} e ${match?.away || 'Time Fora'}. Analise baseada em dados estatisticos.`,
-            confidence: 65,
+            confidence: 75,
             totalGoalsExpected: 2.5,
             dataSource: 'estimated'
         },
         teams: {
-            home: { name: match?.home || 'Time Casa', avgGoals: 1.5, attackStrength: 2.5, defensiveStrength: 25, aggression: 15 },
-            away: { name: match?.away || 'Time Fora', avgGoals: 1.2, attackStrength: 2.0, defensiveStrength: 22, aggression: 18 }
+            home: { name: match?.home || 'Time Casa', avgGoals: 1.5, attackStrength: 2.5, defensiveStrength: 25, aggression: 15, recentForm: ['V', 'E', 'D', 'V', 'E'] },
+            away: { name: match?.away || 'Time Fora', avgGoals: 1.2, attackStrength: 2.0, defensiveStrength: 22, aggression: 18, recentForm: ['E', 'D', 'V', 'E', 'D'] }
         },
         markets: [
-            { type: 'VITORIA TIME CASA', probability: 0.45, risk: { level: 'MEDIO' }, insight: 'Time da casa com leve vantagem' },
+            { type: `VITÓRIA ${(match?.home || 'TIME CASA').toUpperCase()}`, probability: 0.45, risk: { level: 'MEDIO' }, insight: 'Time da casa com leve vantagem' },
             { type: 'EMPATE', probability: 0.28, risk: { level: 'ALTO' }, insight: 'Empate possivel mas improvavel' },
-            { type: 'VITORIA TIME FORA', probability: 0.27, risk: { level: 'ALTO' }, insight: 'Time visitante em desvantagem' },
+            { type: `VITÓRIA ${(match?.away || 'TIME FORA').toUpperCase()}`, probability: 0.27, risk: { level: 'ALTO' }, insight: 'Time visitante em desvantagem' },
             { type: 'OVER 2.5 GOLS', probability: 0.55, risk: { level: 'MEDIO' }, insight: 'Media de gols razoavel' },
             { type: 'AMBOS MARCAM', probability: 0.50, risk: { level: 'MEDIO' }, insight: 'Ambos times podem marcar' },
         ],
@@ -699,7 +657,7 @@ function PredictionsTab({ match }) {
         summary: { winnerAccuracy: '74', over25Accuracy: '64', bttsAccuracy: '60', totalMatches: 50 }
     };
 
-    const { summary, teams, markets, best_bet, dataSource } = analysis || mockAnalysis;
+    const { summary, teams, markets, best_bet } = analysis || defaultAnalysis;
     const validationData = validation || mockValidation;
 
     const getRiskLabel = (risk) => {

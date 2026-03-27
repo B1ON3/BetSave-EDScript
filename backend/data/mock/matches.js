@@ -142,20 +142,51 @@ function generateMockMatches(count = 20, includeLive = false) {
     return matches.sort((a, b) => a.time - b.time);
 }
 
-function generateLiveMatch(matchId) {
-    const leagues = ['Brasileirão Série A', 'Premier League', 'La Liga', 'Serie A'];
+function generateLiveMatch(matchId, homeTeam, awayTeam) {
+    const leagues = ['Brasileirão Série A', 'Premier League', 'La Liga', 'Serie A', 'Copa do Brasil'];
     const league = leagues[Math.floor(Math.random() * leagues.length)];
+    
+    if (homeTeam && awayTeam) {
+        const homeInfo = teamNames[homeTeam] || { name: homeTeam, short: homeTeam.substring(0, 3).toUpperCase(), cc: 'br' };
+        const awayInfo = teamNames[awayTeam] || { name: awayTeam, short: awayTeam.substring(0, 3).toUpperCase(), cc: 'br' };
+        
+        return {
+            id: matchId,
+            time: Math.floor(Date.now() / 1000) - 2700,
+            league: {
+                id: 'live',
+                name: league,
+                cc: 'br'
+            },
+            home: {
+                name: homeInfo.name,
+                short_name: homeInfo.short,
+                cc: homeInfo.cc
+            },
+            away: {
+                name: awayInfo.name,
+                short_name: awayInfo.short,
+                cc: awayInfo.cc
+            },
+            ss: '1-1',
+            timer: '45\'',
+            status: 'INPLAY'
+        };
+    }
     
     const matchups = [
         { home: 'Flamengo', away: 'Palmeiras' },
         { home: 'Corinthians', away: 'São Paulo' },
-        { home: 'Manchester City', away: 'Liverpool' },
-        { home: 'Real Madrid', away: 'Barcelona' }
+        { home: 'Atlético Mineiro', away: 'Botafogo' },
+        { home: 'Grêmio', away: 'Internacional' },
+        { home: 'Santos', away: 'São Paulo' },
+        { home: 'Cruzeiro', away: 'Fortaleza' }
     ];
-    const matchup = matchups[matchId % matchups.length];
     
-    const homeInfo = teamNames[matchup.home] || { name: matchup.home, short: matchup.home.substring(0, 3), cc: 'br' };
-    const awayInfo = teamNames[matchup.away] || { name: matchup.away, short: matchup.away.substring(0, 3), cc: 'br' };
+    const seedMatchup = matchups[Math.abs(matchId) % matchups.length];
+    
+    const homeInfo = teamNames[seedMatchup.home] || { name: seedMatchup.home, short: seedMatchup.home.substring(0, 3), cc: 'br' };
+    const awayInfo = teamNames[seedMatchup.away] || { name: seedMatchup.away, short: seedMatchup.away.substring(0, 3), cc: 'br' };
     
     return {
         id: matchId,

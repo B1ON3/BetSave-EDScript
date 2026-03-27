@@ -1,0 +1,25 @@
+/* ================================================
+   BETSAVE - LAYOUT STYLES
+   ================================================ */
+
+.layout {
+    position: relative;
+    min-height: 100vh;
+}
+
+.layout-with-betslip {
+    padding-right: var(--betslip-width);
+}
+
+.main-content {
+    margin-left: var(--sidebar-width);
+    margin-top: calc(var(--header-top-height) + var(--header-height));
+    min-height: calc(100vh - var(--header-top-height) - var(--header-height));
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+
+.main-content-with-detail {
+    margin-right: var(--panel-width);
+}

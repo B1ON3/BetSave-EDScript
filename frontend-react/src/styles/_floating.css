@@ -1,0 +1,113 @@
+/* ================================================
+   BETSAVE - FLOATING BUTTONS STYLES
+   ================================================ */
+
+/* BetSlip Toggle Button */
+.betslip-toggle-btn {
+    position: fixed;
+    bottom: var(--gap-xl);
+    right: calc(var(--gap-xl) + 70px);
+    padding: 12px 20px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    border: none;
+    border-radius: 25px;
+    color: #000;
+    font-size: var(--font-sm);
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 150;
+    box-shadow: 0 4px 20px var(--accent-glow);
+    transition: all 0.2s;
+}
+
+.betslip-toggle-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 30px var(--accent-glow);
+}
+
+/* Floating Buttons Container */
+.floating-buttons-container {
+    position: fixed;
+    bottom: var(--gap-xl);
+    right: var(--gap-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
+    z-index: 1000;
+}
+
+/* BetSave FAB */
+.betsave-fab {
+    position: fixed;
+    bottom: var(--gap-xl);
+    right: var(--gap-xl);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #05006a;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    transition: all 0.2s ease;
+}
+
+.betsave-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.6);
+}
+
+.betsave-fab-icon {
+    font-size: 1.8rem;
+    color: #ffffff;
+}
+
+.betsave-fab-tooltip {
+    position: absolute;
+    right: 70px;
+    background: #ffffff;
+    color: #000000;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.betsave-fab:hover .betsave-fab-tooltip {
+    opacity: 1;
+}
+
+/* Support FAB */
+.support-fab {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #05006a;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    transition: all 0.2s ease;
+    position: relative;
+    color: #ffffff;
+}
+
+.support-fab:hover {
+    transform: scale(1.1);
+}
+
+.support-fab-icon {
+    font-size: 1.2rem;
+    color: #ffffff;
+}

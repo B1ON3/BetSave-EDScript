@@ -1,0 +1,60 @@
+/* ================================================
+   BETSAVE - CSS VARIABLES
+   ================================================ */
+
+:root {
+    /* Fundos */
+    --bg: #02003a;
+    --panel: #02003a;
+    --panel-dark: #010027;
+    
+    /* Accent */
+    --accent: #00ff88;
+    --accent-dark: #00cc66;
+    --accent-glow: rgba(0, 255, 136, 0.4);
+    
+    /* Texto */
+    --text: #ffffff;
+    --text-muted: #8a8fa3;
+    
+    /* Bordas */
+    --border: rgba(255, 255, 255, 0.05);
+    --border-light: rgba(255, 255, 255, 0.1);
+    
+    /* Risco */
+    --risk-low: #00ff88;
+    --risk-medium: #feca57;
+    --risk-high: #ff5252;
+    
+    /* Status */
+    --live: #ff5252;
+    
+    /* Tamanhos */
+    --header-height: 55px;
+    --header-top-height: 70px;
+    --sidebar-width: 280px;
+    --row-height: 65px;
+    --panel-width: 420px;
+    --ai-panel-width: 380px;
+    --betslip-width: 320px;
+    
+    /* Fontes */
+    --font-size: 15px;
+    --font-xs: 0.75rem;
+    --font-sm: 0.85rem;
+    --font-base: 1rem;
+    --font-lg: 1.1rem;
+    --font-xl: 1.3rem;
+    
+    /* Gaps */
+    --gap-xs: 4px;
+    --gap-sm: 8px;
+    --gap-md: 12px;
+    --gap-lg: 16px;
+    --gap-xl: 24px;
+    
+    /* AI Panel */
+    --ai-font-size: 14px;
+    --ai-border-radius: 12px;
+    --ai-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}

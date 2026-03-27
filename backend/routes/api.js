@@ -113,8 +113,6 @@ function handleOdds(req, res, matchId) {
         const odds = data?.results?.odds ? extractOdds(data.results.odds) : null;
         const bttsOdds = data?.results?.odds?.['17_1']?.[0] || {};
         
-        console.log('📊 Odds debug:', { odds, hasData: odds?.home || odds?.draw || odds?.away });
-        
         const hasValidOdds = odds && (odds.home !== null || odds.draw !== null || odds.away !== null);
         
         if (hasValidOdds) {

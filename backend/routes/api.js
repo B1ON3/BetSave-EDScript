@@ -73,12 +73,20 @@ function handleMatchById(req, res, matchId) {
     const homeTeam = urlObj.searchParams.get('home');
     const awayTeam = urlObj.searchParams.get('away');
     
-    console.log(`📌 Match request: ID=${matchId}, home=${homeTeam}, away=${awayTeam}`);
+    const useCustomTeams = !!(homeTeam && awayTeam);
+    console.log(`📌 handleMatchById: id=${matchId}, home=${homeTeam}, away=${awayTeam}, useCustomTeams=${useCustomTeams}`);
     
     fetchMatchDetails(matchId, token).then(data => {
         if (data?.results) {
             const matchData = data.results;
-            const match = normalizeMatch(matchData);
+            let match = normalizeMatch(matchData);
+            console.log(`📌 API returned: ${match.home} vs ${match.away}`);
+            
+            if (useCustomTeams) {
+                match.home = homeTeam;
+                match.away = awayTeam;
+                console.log(`📌 Overridden to: ${match.home} vs ${match.away}`);
+            }
             
             let events = [];
             if (matchData.incidents && matchData.incidents.length > 0) {
@@ -99,7 +107,7 @@ function handleMatchById(req, res, matchId) {
                 match,
                 events,
                 stats,
-                source: 'api'
+                source: useCustomTeams ? 'mock' : 'api'
             }));
         } else {
             const actualHome = homeTeam || 'Time Casa';

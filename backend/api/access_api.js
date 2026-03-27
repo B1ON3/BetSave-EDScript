@@ -2,14 +2,22 @@ const https = require('https');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { validateEnv, loadEnv } = require('../utils/validateEnv');
+
+loadEnv();
 
 const API_ENDPOINT = "https://api.b365api.com/v1/events/inplay";
-const TOKEN = "248558-x464EYT2kttm4b";
+const TOKEN = process.env.BETSAPI_TOKEN;
+
+if (!TOKEN) {
+    console.error('❌ BETSAPI_TOKEN not configured. Check your .env file.');
+    process.exit(1);
+}
 
 const url = `${API_ENDPOINT}?token=${TOKEN}`;
 
 console.log('Conectando à API do EdScript...');
-console.log(`URL: ${url}`);
+console.log(`URL: ${API_ENDPOINT}`);
 
 function fetchUrl(targetUrl) {
     return new Promise((resolve, reject) => {

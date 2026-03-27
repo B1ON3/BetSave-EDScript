@@ -1,7 +1,14 @@
 const https = require('https');
+const { loadEnv } = require('../utils/validateEnv');
 
-const API_KEY = process.env.FOOTBALL_API_KEY || 'ceae0ccefdebd8803ff5c20e4dc7a535';
+loadEnv();
+
+const API_KEY = process.env.API_FOOTBALL_KEY;
 const BASE_URL = 'v3.football.api-football.com';
+
+if (!API_KEY) {
+    console.warn('⚠️  [FootballAPI] API_FOOTBALL_KEY not configured. Some features may not work.');
+}
 
 const CACHE = new Map();
 const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes

@@ -1,10 +1,13 @@
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const { loadEnv } = require('../utils/validateEnv');
+
+loadEnv();
 
 const API_CONFIG = {
     baseUrl: 'api.b365api.com',
-    token: '248558x464EYT2kttm4b',
+    token: process.env.BETSAPI_TOKEN,
     endpoints: {
         inplay: '/v1/events/inplay',
         upcoming: '/v1/events/upcoming',

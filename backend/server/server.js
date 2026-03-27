@@ -17,7 +17,7 @@ const { loadAllMatches, getTeamStats } = require('../utils/data_loader');
 
 const PORT = process.env.PORT || 3000;
 const ROOT_DIR = path.join(__dirname, '..', '..');
-const API_TOKEN = process.env.API_TOKEN;
+const API_TOKEN = process.env.BETSAPI_TOKEN || process.env.API_TOKEN;
 const API_BASE = 'api.b365api.com';
 
 function parseCSV(content) {

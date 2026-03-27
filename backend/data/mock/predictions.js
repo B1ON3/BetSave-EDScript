@@ -217,35 +217,46 @@ function generateMatchStats(homeTeam, awayTeam) {
     };
 }
 
-function generateMatchEvents(homeTeam, awayTeam) {
+function generateMatchEvents(homeTeam, awayTeam, score = null) {
     const events = [];
-    const homeScore = Math.floor(Math.random() * 4);
-    const awayScore = Math.floor(Math.random() * 3);
     
-    const minuteGoalHome = [12, 28, 45, 67, 78].slice(0, homeScore);
-    const minuteGoalAway = [23, 55, 72, 89].slice(0, awayScore);
+    let homeGoals = 0;
+    let awayGoals = 0;
     
-    minuteGoalHome.forEach(minute => {
+    if (score && typeof score === 'string') {
+        const scoreParts = score.split('-');
+        homeGoals = parseInt(scoreParts[0]) || 0;
+        awayGoals = parseInt(scoreParts[1]) || 0;
+    }
+    
+    const goalMinutesHome = [12, 28, 45, 67, 78, 89];
+    const goalMinutesAway = [23, 55, 72, 84];
+    
+    let goalIdx = 0;
+    for (let i = 0; i < homeGoals && goalIdx < goalMinutesHome.length; i++) {
+        const minute = goalMinutesHome[goalIdx++];
         events.push({
             type: 'goal',
-            player: `${homeTeam} striker`,
+            player: `${homeTeam} player`,
             time: `${minute}'`,
             team: 'home'
         });
-    });
+    }
     
-    minuteGoalAway.forEach(minute => {
+    goalIdx = 0;
+    for (let i = 0; i < awayGoals && goalIdx < goalMinutesAway.length; i++) {
+        const minute = goalMinutesAway[goalIdx++];
         events.push({
             type: 'goal',
-            player: `${awayTeam} forward`,
+            player: `${awayTeam} player`,
             time: `${minute}'`,
             team: 'away'
         });
-    });
+    }
     
-    const yellowCards = Math.floor(2 + Math.random() * 4);
+    const yellowCards = Math.floor(1 + Math.random() * 3);
     for (let i = 0; i < yellowCards; i++) {
-        const minute = Math.floor(Math.random() * 90);
+        const minute = Math.floor(5 + Math.random() * 85);
         const team = Math.random() > 0.5 ? 'home' : 'away';
         events.push({
             type: 'yellowcard',

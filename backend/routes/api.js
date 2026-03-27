@@ -98,7 +98,7 @@ function handleMatchById(req, res, matchId) {
                     team: e.side === 'home' ? 'home' : 'away'
                 }));
             } else {
-                events = mockData.generateMatchEvents(match.home, match.away);
+                events = mockData.generateMatchEvents(match.home, match.away, match.score);
             }
             
             const stats = matchData.stats || mockData.generateMatchStats(match.home, match.away);
@@ -116,7 +116,7 @@ function handleMatchById(req, res, matchId) {
             
             const mockMatch = mockData.generateLiveMatch(parseInt(matchId) || 1234567, actualHome, actualAway);
             const mockStats = mockData.generateMatchStats(actualHome, actualAway);
-            const mockEvents = mockData.generateMatchEvents(actualHome, actualAway);
+            const mockEvents = mockData.generateMatchEvents(actualHome, actualAway, mockMatch.ss);
             
             res.end(JSON.stringify({
                 success: true,

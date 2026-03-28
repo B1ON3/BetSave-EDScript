@@ -74,14 +74,18 @@ function handleMatchById(req, res, matchId) {
     const homeTeam = urlObj.searchParams.get('home');
     const awayTeam = urlObj.searchParams.get('away');
     
-    const useCustomTeams = !!(homeTeam && awayTeam);
-    console.log(`📌 handleMatchById: id=${matchId}, home=${homeTeam}, away=${awayTeam}, useCustomTeams=${useCustomTeams}`);
+    console.log(`📌 handleMatchById: id=${matchId}, home=${homeTeam}, away=${awayTeam}`);
     
     fetchMatchDetails(matchId, token).then(data => {
-        if (data?.results && !useCustomTeams) {
+        if (data?.results) {
             const matchData = data.results;
             let match = normalizeMatch(matchData);
-            console.log(`📌 API returned: ${match.home} vs ${match.away}`);
+            console.log(`📌 API returned: ${match.home} vs ${match.away}, score: ${match.score}`);
+            
+            if (homeTeam && awayTeam) {
+                match.home = homeTeam;
+                match.away = awayTeam;
+            }
             
             let events = [];
             if (matchData.incidents && matchData.incidents.length > 0) {
@@ -107,6 +111,8 @@ function handleMatchById(req, res, matchId) {
         } else {
             const actualHome = homeTeam || 'Time Casa';
             const actualAway = awayTeam || 'Time Fora';
+            
+            console.log(`📌 No API data, using mock for: ${actualHome} vs ${actualAway}`);
             
             const mockMatch = mockData.generateLiveMatch(parseInt(matchId) || 1234567, actualHome, actualAway);
             const mockStats = mockData.generateMatchStats(actualHome, actualAway);

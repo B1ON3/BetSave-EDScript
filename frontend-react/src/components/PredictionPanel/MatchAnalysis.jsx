@@ -10,28 +10,35 @@ export default function MatchAnalysis({ match }) {
 
     useEffect(() => {
         if (match?.id) {
-            fetchMatchDetails(match.id, match.home, match.away);
             fetchMatchAnalysis(match.home, match.away);
         }
     }, [match]);
 
-    const fetchMatchDetails = async (matchId, home, away) => {
-        try {
-            let url = `${API}/api/match/${matchId}`;
-            if (home && away) {
-                url += `?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`;
-            }
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                if (data.success) {
-                    setMatchDetails(data);
-                }
-            }
-        } catch (err) {
-            console.log('Erro ao buscar detalhes:', err);
+    useEffect(() => {
+        if (match) {
+            const apiMatch = {
+                id: match.id,
+                home: match.home,
+                away: match.away,
+                score: match.homeScore !== undefined && match.awayScore !== undefined 
+                    ? `${match.homeScore}-${match.awayScore}` 
+                    : match.score,
+                league: match.league,
+                status: match.status,
+                time: match.time,
+                startTime: match.startTime,
+                localTime: match.localTime
+            };
+            
+            setMatchDetails({
+                success: true,
+                match: apiMatch,
+                events: match.events || [],
+                stats: match.stats || null,
+                source: match.source || 'api'
+            });
         }
-    };
+    }, [match]);
 
     const fetchMatchAnalysis = async (home, away) => {
         if (!home || !away) return;

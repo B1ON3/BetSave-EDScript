@@ -93,23 +93,46 @@ function normalizeMatch(m, includeOdds = false) {
     const matchDate = new Date(ms);
     const isoDate = matchDate.toISOString().split('T')[0];
     
+    const scoreParts = (m.ss || '0-0').split('-');
+    const homeScore = parseInt(scoreParts[0]) || 0;
+    const awayScore = parseInt(scoreParts[1]) || 0;
+    
+    const timer = m.timer || {};
+    const elapsedMinutes = parseInt(timer.tm) || 0;
+    const elapsedSeconds = parseInt(timer.ts) || 0;
+    const periodType = timer.tt || '0';
+    
+    const hasLiveTimer = timer.tm !== undefined && timer.tm > 0;
+    const isLive = m.inplay || hasLiveTimer;
+    const isHalftime = periodType === '0' && hasLiveTimer;
+    
+    const status = isLive ? (isHalftime ? 'HT' : 'LIVE') : (m.inplay ? 'live' : 'upcoming');
+    
     return {
         id: m.id,
         home: cleanTeamName(m.home?.name),
         away: cleanTeamName(m.away?.name),
         homeId: m.home?.id,
         awayId: m.away?.id,
+        homeScore,
+        awayScore,
         startTime: time?.iso,
         localTime: time?.local,
         time: time?.time,
+        elapsed: elapsedMinutes,
+        elapsedSeconds: elapsedSeconds,
+        periodType: periodType,
         date: time?.date,
         isoDate: isoDate,
         dayName: time?.dayName,
         league: cleanLeagueName(m.league?.name),
         leaguecc: m.league?.cc,
-        status: m.inplay ? 'live' : 'upcoming',
+        status: status,
         score: m.ss,
-        odds: includeOdds ? m.odds : null
+        odds: includeOdds ? m.odds : null,
+        extra: m.extra || null,
+        inplay: isLive,
+        timer: timer
     };
 }
 

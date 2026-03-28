@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API, formatTime } from '../utils';
+import LineupField from './LineupField';
 
 export default function MatchDetail({ match, onClose }) {
     const [tab, setTab] = useState('overview');
@@ -250,15 +251,21 @@ function LineupTab({ match, analysis, loading }) {
         const fetchLineups = async () => {
             setLineupLoading(true);
             try {
-                const params = new URLSearchParams({
-                    home: match.home,
-                    away: match.away
-                });
-                if (match.homeId) params.append('homeId', match.homeId);
-                if (match.awayId) params.append('awayId', match.awayId);
-                if (match.id) params.append('fixture_id', match.id);
+                let url;
                 
-                const res = await fetch(`${API}/api/lineups?${params}`);
+                if (match.id) {
+                    url = `${API}/api/lineups/${match.id}`;
+                } else {
+                    const params = new URLSearchParams({
+                        home: match.home,
+                        away: match.away
+                    });
+                    if (match.homeId) params.append('homeId', match.homeId);
+                    if (match.awayId) params.append('awayId', match.awayId);
+                    url = `${API}/api/lineups?${params}`;
+                }
+                
+                const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
                     setLineups(data);
@@ -282,8 +289,6 @@ function LineupTab({ match, analysis, loading }) {
         );
     }
     
-    const homeLineup = lineups?.home;
-    const awayLineup = lineups?.away;
     const homeBestPlayer = analysis?.bestPlayers?.home;
     const awayBestPlayer = analysis?.bestPlayers?.away;
 
@@ -297,77 +302,77 @@ function LineupTab({ match, analysis, loading }) {
                 </div>
             )}
             
-            <div className="lineup-grid">
-                {/* Home Team */}
-                <div className="lineup-team">
-                    <div className="lineup-team-name">{match.home}</div>
-                    <div className="lineup-formation">
-                        Formação: {homeLineup?.formation || '4-3-3'}
-                    </div>
+            {lineups?.success === false && lineups?.warning && (
+                <div className="lineup-warning">
+                    <i className="fa fa-info-circle"></i>
+                    {lineups.warning}
+                </div>
+            )}
+            
+            {lineups?.success !== false && lineups?.lineups && lineups.lineups.length > 0 ? (
+                <>
+                    <LineupField lineups={lineups} match={match} />
                     
                     {homeBestPlayer && (
-                        <div className="best-player">
-                            <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
-                            <div className="best-player-name"><i className="fa fa-futbol"></i> {homeBestPlayer.name}</div>
-                            <div className="best-player-stats">
-                                <span>Gols: {homeBestPlayer.goals}</span>
-                                <span>Assist: {homeBestPlayer.assists}</span>
+                        <div className="best-players-section">
+                            <div className="best-player-card home">
+                                <div className="best-player-badge"><i className="fa fa-trophy"></i> {match.home}</div>
+                                <div className="best-player-name"><i className="fa fa-futbol"></i> {homeBestPlayer.name}</div>
+                                <div className="best-player-stats">
+                                    <span>Gols: {homeBestPlayer.goals}</span>
+                                    <span>Assist: {homeBestPlayer.assists}</span>
+                                </div>
+                            </div>
+                            <div className="best-player-card away">
+                                <div className="best-player-badge"><i className="fa fa-trophy"></i> {match.away}</div>
+                                <div className="best-player-name"><i className="fa fa-futbol"></i> {awayBestPlayer.name}</div>
+                                <div className="best-player-stats">
+                                    <span>Gols: {awayBestPlayer.goals}</span>
+                                    <span>Assist: {awayBestPlayer.assists}</span>
+                                </div>
                             </div>
                         </div>
                     )}
-                    
-                    <div className="players-list">
-                        {homeLineup?.players?.length > 0 ? (
-                            homeLineup.players.map((p, i) => (
-                                <div key={i} className="player-item">
-                                    <span className="player-num">{p.number || i + 1}</span>
-                                    <span className="player-name">{p.name}</span>
-                                    <span className="player-pos">{p.role || p.position}</span>
+                </>
+            ) : (
+                <div className="lineup-grid">
+                    <div className="lineup-team">
+                        <div className="lineup-team-name">{match.home}</div>
+                        <div className="lineup-formation">
+                            Formação: {lineups?.homeFormation || '4-3-3'}
+                        </div>
+                        
+                        {homeBestPlayer && (
+                            <div className="best-player">
+                                <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
+                                <div className="best-player-name"><i className="fa fa-futbol"></i> {homeBestPlayer.name}</div>
+                                <div className="best-player-stats">
+                                    <span>Gols: {homeBestPlayer.goals}</span>
+                                    <span>Assist: {homeBestPlayer.assists}</span>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="player-item empty">
-                                Escalação indisponível no momento
+                            </div>
+                        )}
+                    </div>
+                    
+                    <div className="lineup-team">
+                        <div className="lineup-team-name">{match.away}</div>
+                        <div className="lineup-formation">
+                            Formação: {lineups?.awayFormation || '4-4-2'}
+                        </div>
+                        
+                        {awayBestPlayer && (
+                            <div className="best-player">
+                                <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
+                                <div className="best-player-name"><i className="fa fa-futbol"></i> {awayBestPlayer.name}</div>
+                                <div className="best-player-stats">
+                                    <span>Gols: {awayBestPlayer.goals}</span>
+                                    <span>Assist: {awayBestPlayer.assists}</span>
+                                </div>
                             </div>
                         )}
                     </div>
                 </div>
-                
-                {/* Away Team */}
-                <div className="lineup-team">
-                    <div className="lineup-team-name">{match.away}</div>
-                    <div className="lineup-formation">
-                        Formação: {awayLineup?.formation || '4-4-2'}
-                    </div>
-                    
-                    {awayBestPlayer && (
-                        <div className="best-player">
-                            <div className="best-player-badge"><i className="fa fa-trophy"></i> MELHOR JOGADOR</div>
-                            <div className="best-player-name"><i className="fa fa-futbol"></i> {awayBestPlayer.name}</div>
-                            <div className="best-player-stats">
-                                <span>Gols: {awayBestPlayer.goals}</span>
-                                <span>Assist: {awayBestPlayer.assists}</span>
-                            </div>
-                        </div>
-                    )}
-                    
-                    <div className="players-list">
-                        {awayLineup?.players?.length > 0 ? (
-                            awayLineup.players.map((p, i) => (
-                                <div key={i} className="player-item">
-                                    <span className="player-num">{p.number || i + 1}</span>
-                                    <span className="player-name">{p.name}</span>
-                                    <span className="player-pos">{p.role || p.position}</span>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="player-item empty">
-                                Escalação indisponível no momento
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
+            )}
         </div>
     );
 }

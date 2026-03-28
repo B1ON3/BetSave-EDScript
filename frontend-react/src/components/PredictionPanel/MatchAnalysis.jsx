@@ -7,38 +7,116 @@ export default function MatchAnalysis({ match }) {
     const [lineupTab, setLineupTab] = useState('confirmada');
     const [matchDetails, setMatchDetails] = useState(null);
     const [analysis, setAnalysis] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (match?.id) {
-            fetchMatchAnalysis(match.home, match.away);
+            setLoading(true);
+            Promise.all([
+                fetchMatchDetails(match.id, match.home, match.away),
+                fetchMatchAnalysis(match.home, match.away),
+                fetchLiveEvents(match.home, match.away)
+            ]).finally(() => setLoading(false));
         }
     }, [match]);
 
-    useEffect(() => {
-        if (match) {
-            const apiMatch = {
-                id: match.id,
-                home: match.home,
-                away: match.away,
-                score: match.homeScore !== undefined && match.awayScore !== undefined 
-                    ? `${match.homeScore}-${match.awayScore}` 
-                    : match.score,
-                league: match.league,
-                status: match.status,
-                time: match.time,
-                startTime: match.startTime,
-                localTime: match.localTime
-            };
-            
-            setMatchDetails({
-                success: true,
-                match: apiMatch,
-                events: match.events || [],
-                stats: match.stats || null,
-                source: match.source || 'api'
-            });
+    const fetchMatchDetails = async (matchId, home, away) => {
+        try {
+            let url = `${API}/api/match/${matchId}`;
+            if (home && away) {
+                url += `?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`;
+            }
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    setMatchDetails(prev => ({ ...prev, match: data.match, stats: data.stats }));
+                    console.log(`📊 Match details - source: ${data.source}`);
+                }
+            }
+        } catch (err) {
+            console.log('Erro ao buscar detalhes:', err);
         }
-    }, [match]);
+    };
+
+    const fetchLiveEvents = async (home, away) => {
+        if (!home || !away) return;
+        
+        const parseScore = (scoreStr) => {
+            if (typeof scoreStr === 'string' && scoreStr.includes('-')) {
+                const parts = scoreStr.split('-');
+                return {
+                    home: parseInt(parts[0]) || 0,
+                    away: parseInt(parts[1]) || 0
+                };
+            }
+            return { home: null, away: null };
+        };
+        
+        const matchScore = parseScore(match?.score);
+        
+        try {
+            const res = await fetch(`${API}/api/live-events?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
+            if (res.ok) {
+                const data = await res.json();
+                
+                if (data.fixtureId) {
+                    try {
+                        const liveRes = await fetch(`${API}/api/live-match-data/${data.fixtureId}`);
+                        if (liveRes.ok) {
+                            const liveData = await liveRes.json();
+                            if (liveData.success) {
+                                setMatchDetails({
+                                    home: liveData.home || home,
+                                    away: liveData.away || away,
+                                    homeGoals: liveData.homeGoals ?? matchScore.home ?? 0,
+                                    awayGoals: liveData.awayGoals ?? matchScore.away ?? 0,
+                                    score: liveData.score || match?.score || '0-0',
+                                    status: liveData.status || 'NS',
+                                    statusLong: liveData.statusLong || 'AGENDADO',
+                                    elapsed: liveData.elapsed || 0,
+                                    period: liveData.period || 'AGENDADO',
+                                    events: liveData.events || data.events || [],
+                                    source: liveData.source || 'api-football',
+                                    fixtureId: liveData.fixtureId,
+                                    venue: liveData.venue,
+                                    referee: liveData.referee,
+                                    league: liveData.league,
+                                    homeLogo: liveData.homeLogo,
+                                    awayLogo: liveData.awayLogo
+                                });
+                                console.log(`📊 API-Football data - score: ${liveData.score}`);
+                                return;
+                            }
+                        }
+                    } catch (e) {
+                        console.log('Erro ao buscar dados API-Football:', e);
+                    }
+                }
+                
+                const statusFromMatch = match?.status || 'NS';
+                
+                setMatchDetails({
+                    home: data.home || home,
+                    away: data.away || away,
+                    homeGoals: matchScore.home ?? data.homeGoals ?? 0,
+                    awayGoals: matchScore.away ?? data.awayGoals ?? 0,
+                    score: match?.score || data.score || '0-0',
+                    status: statusFromMatch,
+                    statusLong: statusFromMatch === 'INPLAY' || statusFromMatch === 'live' ? 'AO VIVO' : 'AGENDADO',
+                    elapsed: parseInt(match?.time) || 0,
+                    period: statusFromMatch === 'INPLAY' || statusFromMatch === 'live' ? 'AO VIVO' : 'AGENDADO',
+                    events: data.events || [],
+                    source: 'betsapi',
+                    fixtureId: data.fixtureId,
+                    warning: 'Dados do BetsAPI'
+                });
+                console.log(`📊 BetsAPI data - score: ${match?.score}`);
+            }
+        } catch (err) {
+            console.log('Erro ao buscar eventos:', err);
+        }
+    };
 
     const fetchMatchAnalysis = async (home, away) => {
         if (!home || !away) return;
@@ -55,29 +133,102 @@ export default function MatchAnalysis({ match }) {
 
     return (
         <div className="match-analysis">
-            <MatchHeader match={match} />
+            {loading && (
+                <div className="loading-overlay">
+                    <div className="loading-spinner"></div>
+                    <span>Carregando dados da partida...</span>
+                </div>
+            )}
+            <MatchHeader match={match} matchDetails={matchDetails} />
             <AnalysisTabs match={match} activeTab={analysisTab} onTabChange={setAnalysisTab} />
             <TabContent match={match} matchDetails={matchDetails} analysis={analysis} lineupTab={lineupTab} setLineupTab={setLineupTab} activeTab={analysisTab} onTabChange={setAnalysisTab} />
         </div>
     );
 }
 
-function MatchHeader({ match }) {
+function MatchHeader({ match, matchDetails }) {
+    const liveData = matchDetails;
+    
+    const homeName = match?.home || liveData?.home || 'Time Casa';
+    const awayName = match?.away || liveData?.away || 'Time Fora';
+    
+    const getOriginalScore = () => {
+        if (typeof match?.score === 'string' && match.score.includes('-')) {
+            const parts = match.score.split('-');
+            return { home: parseInt(parts[0]) || 0, away: parseInt(parts[1]) || 0 };
+        }
+        return null;
+    };
+    
+    const originalScore = getOriginalScore();
+    const hasValidLiveScore = liveData?.source === 'api-football' && (liveData?.homeGoals > 0 || liveData?.awayGoals > 0);
+    
+    const homeScore = hasValidLiveScore ? liveData.homeGoals : (match?.homeScore ?? originalScore?.home ?? 0);
+    const awayScore = hasValidLiveScore ? liveData.awayGoals : (match?.awayScore ?? originalScore?.away ?? 0);
+    
+    const period = liveData?.period || 'AGENDADO';
+    const elapsed = liveData?.elapsed ?? match?.elapsed ?? 0;
+    const status = liveData?.status || match?.status || 'NS';
+    
+    const isLive = status === 'LIVE' || status === '1H' || status === '2H' || status === 'INPLAY' || status === 'live';
+    const isHalftime = status === 'HT';
+    const isFinished = status === 'FT' || status === 'POST';
+    
+    const hasScore = match?.score && match.score !== '0-0' && match.score !== null;
+    const showAsLive = isLive || hasScore;
+    
+    const getStatusBadge = () => {
+        if (isFinished) return <span className="match-status finished">FINALIZADO</span>;
+        if (isHalftime) return <span className="match-status halftime">INTERVALO</span>;
+        if (showAsLive) return <span className="match-status live">AO VIVO</span>;
+        return <span className="match-status scheduled">AGENDADO</span>;
+    };
+    
     return (
         <div className="analysis-match-header">
             <div className="analysis-teams-row">
-                <span className="analysis-team-name home">{match.home}</span>
-                <div className="analysis-score">
-                    <span className="score">{match.homeScore ?? match.score?.split('-')[0] ?? 0}</span>
-                    <span className="score-sep">x</span>
-                    <span className="score">{match.awayScore ?? match.score?.split('-')[1] ?? 0}</span>
+                <div className="team-name home">
+                    <span className="team-label">MANDANTE</span>
+                    <span className="team-name-text">{homeName}</span>
                 </div>
-                <span className="analysis-team-name away">{match.away}</span>
+                <div className="analysis-score">
+                    <span className="score home">{homeScore}</span>
+                    <span className="score-sep">x</span>
+                    <span className="score away">{awayScore}</span>
+                </div>
+                <div className="team-name away">
+                    <span className="team-label">VISITANTE</span>
+                    <span className="team-name-text">{awayName}</span>
+                </div>
             </div>
             <div className="analysis-live-row">
-                <span className="live-indicator"></span>
-                <span className="live-text">{match.status === 'INPLAY' || match.status === 'live' ? 'AO VIVO' : 'AGENDADO'} - {match.time || '00'}'</span>
+                {getStatusBadge()}
+                {showAsLive && (
+                    <span className="live-indicator"></span>
+                )}
+                <span className="live-text">
+                    {showAsLive ? `${elapsed}'` : isHalftime ? 'HT' : isFinished ? 'FT' : ''}
+                </span>
+                {liveData?.source === 'api-football' && (
+                    <span className="source-badge real"><i className="fa fa-database"></i> TEMPO REAL</span>
+                )}
+                {liveData?.source === 'betsapi' && (
+                    <span className="source-badge"><i className="fa fa-futbol"></i> BETSAVE</span>
+                )}
+                {liveData?.source === 'mock' && (
+                    <span className="source-badge mock"><i className="fa fa-cloud"></i> SIMULADO</span>
+                )}
             </div>
+            {match?.league && (
+                <div className="match-league">
+                    <i className="fa fa-trophy"></i> {match.league}
+                </div>
+            )}
+            {liveData?.venue && (
+                <div className="match-venue">
+                    <i className="fa fa-map-marker-alt"></i> {liveData.venue}
+                </div>
+            )}
         </div>
     );
 }
@@ -121,26 +272,44 @@ function OverviewTab({ match, matchDetails, analysis }) {
     const teamAnalysis = analysis;
 
     const getEventIcon = (type) => {
-        if (type === 'GOOL' || type === 'goal' || type === 'Goal') return 'fa-futbol';
+        if (type === 'Goal' || type === 'GOOL' || type === 'goal') return 'fa-futbol';
+        if (type === 'Red Card' || type === 'RED_CARD') return 'fa-square text-red';
+        if (type === 'Yellow Card' || type === 'YELLOW_CARD') return 'fa-square text-yellow';
+        if (type === 'Substitution' || type === 'SUBSTITUTION') return 'fa-exchange-alt';
+        if (type === 'Penalty' || type === 'PENALTY') return 'fa-circle';
+        if (type === 'Own Goal' || type === 'OWN_GOAL') return 'fa-futbol';
         if (type && type.includes && type.includes('VERMELHO')) return 'fa-square text-red';
         if (type === 'CARTAO' || type === 'yellowcard' || type === 'Yellow Card') return 'fa-square text-yellow';
-        if (type === 'SUBST' || type === 'substitution' || type === 'Substitution') return 'fa-exchange-alt';
-        if (type === 'PEN' || type === 'penalty' || type === 'Penalty') return 'fa-circle';
+        if (type === 'SUBST' || type === 'substitution') return 'fa-exchange-alt';
+        if (type === 'PEN' || type === 'penalty') return 'fa-circle';
         return 'fa-circle';
     };
 
     const translateEventType = (type) => {
         if (!type) return 'EVENTO';
-        if (type === 'GOOL' || type === 'goal' || type === 'Goal') return 'GOL';
-        if (type === 'CARTAO' || type === 'yellowcard' || type === 'Yellow Card') return 'CARTAO AMARELO';
-        if (type.includes && type.includes('VERMELHO')) return 'CARTAO VERMELHO';
-        if (type === 'SUBST' || type === 'substitution' || type === 'Substitution') return 'SUBSTITUICAO';
-        if (type === 'PEN' || type === 'penalty' || type === 'Penalty') return 'PENALTI';
-        if (type === 'PEN_MISS' || type === 'penalty_missed') return 'PENALTI PERDIDO';
+        if (type === 'Goal' || type === 'GOOL' || type === 'goal') return 'GOL';
+        if (type === 'Yellow Card' || type === 'YELLOW_CARD' || type === 'CARTAO' || type === 'yellowcard') return 'CARTAO AMARELO';
+        if (type === 'Red Card' || type === 'RED_CARD' || (type && type.includes && type.includes('VERMELHO'))) return 'CARTAO VERMELHO';
+        if (type === 'Second Yellow' || type === 'SECOND_YELLOW') return 'SEGUNDO CARTAO';
+        if (type === 'Substitution' || type === 'SUBSTITUTION' || type === 'SUBST' || type === 'substitution') return 'SUBSTITUICAO';
+        if (type === 'Penalty' || type === 'PENALTY' || type === 'PEN') return 'PENALTI';
+        if (type === 'Missed Penalty' || type === 'PENALTY_MISS') return 'PENALTI PERDIDO';
+        if (type === 'Own Goal' || type === 'OWN_GOAL') return 'GOL CONTRA';
+        if (type === 'VAR') return 'VAR';
+        if (type === 'Injuries' || type === 'INJURY') return 'LESAO';
         return type;
     };
 
-    const defaultEvents = matchDetails?.events && matchDetails.events.length > 0 ? [] : [
+    const getEventTeam = (event, matchHome, matchAway) => {
+        if (event.teamSide && matchDetails?.fixtureId) {
+            return 'team';
+        }
+        if (event.team === matchHome || event.team === 'home') return 'home';
+        if (event.team === matchAway || event.team === 'away') return 'away';
+        return 'home';
+    };
+
+    const defaultEvents = [
         { type: 'GOL', player: match?.home || 'Time Casa', time: '45+2\'', team: 'home', icon: 'fa-futbol' },
         { type: 'CARTAO AMARELO', player: 'Jogador Visitante', time: '38\'', team: 'away', icon: 'fa-square text-yellow' },
         { type: 'GOL', player: match?.away || 'Time Fora', time: '22\'', team: 'away', icon: 'fa-futbol' },
@@ -156,16 +325,11 @@ function OverviewTab({ match, matchDetails, analysis }) {
             ...e,
             type: translateEventType(e.type),
             icon: getEventIcon(e.type),
-            team: e.team || 'home'
+            team: getEventTeam(e, match?.home, match?.away),
+            player: e.player || e.playerName || 'Jogador',
+            time: e.time || e.minute || '00\''
         }))
-        : (matchDetails?.events && matchDetails.events.length > 0) 
-            ? matchDetails.events.map(e => ({
-                ...e,
-                type: translateEventType(e.type),
-                icon: getEventIcon(e.type),
-                team: e.team || 'home'
-            }))
-            : defaultEvents;
+        : defaultEvents;
 
     const stats = (matchDetails?.match?.stats) || defaultStats;
 

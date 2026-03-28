@@ -21,6 +21,20 @@ const {
 } = require('../services/predictionService');
 const { analyzeMatch } = require('../engine/super_odds_engine');
 const { getTeamData, getMatchAnalysis } = require('../engine/aggregator');
+const { 
+    getMatchEvents, 
+    getMatchStatistics, 
+    searchFixtureByTeams, 
+    getLiveFixtures, 
+    getFixtureById,
+    getMatchStatisticsById,
+    getTeamFormById,
+    getLeagueStandingsById,
+    getH2H,
+    searchTeam,
+    clearCache
+} = require('../clients/footballapi');
+const { getLiveMatches, getRecentMatches, getLineupsViaCurl } = require('../services/liveMatchService');
 const mockData = require('../data/mock');
 const { 
     cleanTeamName, 
@@ -30,42 +44,114 @@ const {
     convertToBrazilTime 
 } = require('../utils/helpers');
 
-function handleMatches(req, res) {
-    const token = req.token;
+async function handleLiveFootballAPI(req, res) {
+    console.log(`📡 [API] Buscando jogos ao vivo da API-Football`);
     
-    fetchUpcomingMatches(token).then(data => {
-        const matches = (data?.results || []).map(m => normalizeMatch(m));
+    try {
+        const liveFixtures = await getLiveFixtures();
         
-        res.end(JSON.stringify({
-            matches,
-            source: data?.results?.length > 0 ? 'api' : 'mock',
-            total: matches.length,
-            warning: data?.warning || null
-        }));
-    });
-}
-
-function handleLive(req, res) {
-    const token = req.token;
-    
-    fetchLiveMatches(token).then(data => {
-        if (data?.results && data.results.length > 0) {
-            const matches = data.results.map(m => normalizeMatch(m));
-            res.end(JSON.stringify({ 
-                matches, 
-                source: 'api', 
-                total: matches.length 
+        if (liveFixtures && liveFixtures.length > 0) {
+            console.log(`✅ [API] ${liveFixtures.length} jogos ao vivo encontrados`);
+            res.end(JSON.stringify({
+                success: true,
+                matches: liveFixtures,
+                source: 'api-football',
+                total: liveFixtures.length
             }));
         } else {
-            const mockLive = mockData.generateMockMatches(5, true);
-            res.end(JSON.stringify({ 
-                matches: mockLive.map(m => normalizeMatch(m)), 
-                source: 'mock', 
-                total: mockLive.length,
-                warning: 'Nenhum jogo ao vivo disponivel - usando dados simulados'
+            res.end(JSON.stringify({
+                success: false,
+                matches: [],
+                source: 'api-football',
+                warning: 'Nenhum jogo ao vivo encontrado'
             }));
         }
-    });
+    } catch (e) {
+        console.log(`❌ [API] Erro: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleMatchEventsFootball(req, res, matchId) {
+    console.log(`📡 [API] Buscando eventos para partida ${matchId}`);
+    
+    try {
+        const events = await getMatchEvents(matchId);
+        const fixture = await getFixtureById(matchId);
+        
+        if (fixture) {
+            res.end(JSON.stringify({
+                success: true,
+                fixtureId: matchId,
+                home: fixture.home,
+                away: fixture.away,
+                homeGoals: fixture.homeGoals,
+                awayGoals: fixture.awayGoals,
+                score: `${fixture.homeGoals || 0}-${fixture.awayGoals || 0}`,
+                status: fixture.status,
+                statusLong: fixture.statusLong,
+                elapsed: fixture.elapsed,
+                period: getMatchPeriod(fixture.status),
+                events: events,
+                source: 'api-football'
+            }));
+        } else {
+            res.end(JSON.stringify({
+                success: false,
+                error: 'Partida não encontrada',
+                source: 'api-football'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleMatches(req, res) {
+    console.log('═'.repeat(50));
+    console.log('📡 [API] handleMatches() - Buscando partidas');
+    
+    try {
+        const data = await getRecentMatches();
+        
+        console.log(`✅ [API] ${data.total} partidas encontradas`);
+        console.log(`📊 Fonte: ${data.source}`);
+        console.log('═'.repeat(50));
+        
+        res.end(JSON.stringify(data));
+    } catch (e) {
+        console.log(`❌ [API] Erro em handleMatches: ${e.message}`);
+        res.end(JSON.stringify({ 
+            error: e.message,
+            matches: [],
+            source: 'error',
+            total: 0
+        }));
+    }
+}
+
+async function handleLive(req, res) {
+    console.log('═'.repeat(50));
+    console.log('📡 [API] handleLive() - Buscando partidas ao vivo');
+    
+    try {
+        const data = await getLiveMatches();
+        
+        console.log(`✅ [API] ${data.total} partidas ao vivo`);
+        console.log(`📊 Fonte: ${data.source}`);
+        console.log('═'.repeat(50));
+        
+        res.end(JSON.stringify(data));
+    } catch (e) {
+        console.log(`❌ [API] Erro em handleLive: ${e.message}`);
+        res.end(JSON.stringify({ 
+            error: e.message,
+            matches: [],
+            source: 'error',
+            total: 0
+        }));
+    }
 }
 
 function handleMatchById(req, res, matchId) {
@@ -260,6 +346,43 @@ async function handleAnalyze(req, res, home, away) {
             time: time?.time,
             league: cleanLeagueName(matchInfo.league?.name || 'Unknown')
         };
+        
+        try {
+            const matchStats = await getMatchStatisticsById(matchInfo.id);
+            if (matchStats) {
+                analysis.match_statistics = matchStats;
+            }
+        } catch (e) {
+            console.log(`⚠️ Erro ao buscar estatísticas da partida: ${e.message}`);
+        }
+    }
+    
+    try {
+        const homeTeamData = await searchTeam(homeDec);
+        const awayTeamData = await searchTeam(awayDec);
+        
+        if (homeTeamData?.id) {
+            const homeForm = await getTeamFormById(homeTeamData.id);
+            if (homeForm) {
+                analysis.home_form = homeForm;
+            }
+        }
+        
+        if (awayTeamData?.id) {
+            const awayForm = await getTeamFormById(awayTeamData.id);
+            if (awayForm) {
+                analysis.away_form = awayForm;
+            }
+        }
+        
+        if (homeTeamData?.id && awayTeamData?.id) {
+            const h2h = await getH2H(homeDec, awayDec);
+            if (h2h) {
+                analysis.h2h = h2h;
+            }
+        }
+    } catch (e) {
+        console.log(`⚠️ Erro ao buscar dados adicionais: ${e.message}`);
     }
     
     console.log('═'.repeat(50));
@@ -779,6 +902,189 @@ async function handleTeamData(req, res, teamName) {
     }
 }
 
+async function handleMatchEvents(req, res, matchId) {
+    console.log(`📡 [API] Buscando eventos para partida: ${matchId}`);
+    
+    try {
+        const events = await getMatchEvents(matchId);
+        
+        if (events && events.length > 0) {
+            console.log(`✅ [API] ${events.length} eventos encontrados via API-Football`);
+            res.end(JSON.stringify({
+                success: true,
+                events,
+                source: 'api-football',
+                total: events.length
+            }));
+        } else {
+            console.log(`⚠️ [API] Nenhum evento da API, usando mock`);
+            const urlObj = new URL(req.url, `http://localhost:3000`);
+            const home = urlObj.searchParams.get('home') || 'Time Casa';
+            const away = urlObj.searchParams.get('away') || 'Time Fora';
+            const score = urlObj.searchParams.get('score') || '0-0';
+            
+            const mockEvents = mockData.generateMatchEvents(home, away, score);
+            res.end(JSON.stringify({
+                success: true,
+                events: mockEvents,
+                source: 'mock',
+                total: mockEvents.length,
+                warning: 'Eventos simulados - dados reais não disponíveis'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar eventos: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleMatchLiveEvents(req, res, home, away) {
+    console.log(`📡 [API] Buscando eventos ao vivo: ${home} vs ${away}`);
+    
+    try {
+        const fixture = await searchFixtureByTeams(home, away);
+        
+        if (fixture && fixture.id) {
+            console.log(`✅ [API] Partida encontrada: ${fixture.id}`);
+            
+            const fullFixture = await getFixtureById(fixture.id);
+            const events = await getMatchEvents(fixture.id);
+            
+            const period = getMatchPeriod(fixture.status);
+            
+            if (events && events.length > 0) {
+                res.end(JSON.stringify({
+                    success: true,
+                    fixtureId: fixture.id,
+                    home: fixture.home,
+                    away: fixture.away,
+                    homeId: fixture.homeId,
+                    awayId: fixture.awayId,
+                    homeGoals: fixture.homeGoals,
+                    awayGoals: fixture.awayGoals,
+                    events,
+                    score: `${fixture.homeGoals || 0}-${fixture.awayGoals || 0}`,
+                    status: fixture.status,
+                    statusLong: fullFixture?.statusLong || period,
+                    elapsed: fixture.elapsed || 0,
+                    period: period,
+                    venue: fullFixture?.venue,
+                    referee: fullFixture?.referee,
+                    source: 'api-football'
+                }));
+            } else {
+                const mockEvents = mockData.generateMatchEvents(home, away, `${fixture.homeGoals || 0}-${fixture.awayGoals || 0}`);
+                res.end(JSON.stringify({
+                    success: true,
+                    fixtureId: fixture.id,
+                    home: fixture.home,
+                    away: fixture.away,
+                    homeId: fixture.homeId,
+                    awayId: fixture.awayId,
+                    homeGoals: fixture.homeGoals,
+                    awayGoals: fixture.awayGoals,
+                    events: mockEvents,
+                    score: `${fixture.homeGoals || 0}-${fixture.awayGoals || 0}`,
+                    status: fixture.status,
+                    statusLong: fullFixture?.statusLong || period,
+                    elapsed: fixture.elapsed || 0,
+                    period: period,
+                    venue: fullFixture?.venue,
+                    referee: fullFixture?.referee,
+                    source: 'api-football'
+                }));
+            }
+        } else {
+            console.log(`⚠️ [API] Partida não encontrada na API-Football`);
+            const mockEvents = mockData.generateMatchEvents(home, away, '0-0');
+            res.end(JSON.stringify({
+                success: false,
+                home: home,
+                away: away,
+                homeGoals: 0,
+                awayGoals: 0,
+                events: mockEvents,
+                score: '0-0',
+                status: 'NS',
+                statusLong: 'AGENDADO',
+                elapsed: 0,
+                period: 'AGENDADO',
+                source: 'mock',
+                warning: 'Partida não encontrada na API'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+function getMatchPeriod(status) {
+    const statusMap = {
+        '1H': '1º TEMPO',
+        '2H': '2º TEMPO',
+        'HT': 'INTERVALO',
+        'ET': 'PRORROGAÇÃO',
+        'P': 'PENALTIS',
+        'FT': 'FINALIZADO',
+        'LIVE': 'AO VIVO',
+        'NS': 'AGENDADO',
+        'POST': 'ENCERRADO',
+        'SUS': 'SUSPENSO',
+        'CANC': 'CANCELADO',
+        'INT': 'INTERROMPIDO'
+    };
+    return statusMap[status] || 'AGENDADO';
+}
+
+async function handleLiveMatchData(req, res, matchId) {
+    console.log(`📡 [API] Buscando dados ao vivo para partida: ${matchId}`);
+    
+    try {
+        const fixture = await getFixtureById(matchId);
+        
+        if (fixture && fixture.id) {
+            console.log(`✅ [API] Partida encontrada: ${fixture.id} - ${fixture.home} vs ${fixture.away}`);
+            
+            const events = await getMatchEvents(matchId);
+            
+            res.end(JSON.stringify({
+                success: true,
+                fixtureId: fixture.id,
+                home: fixture.home,
+                away: fixture.away,
+                homeId: fixture.homeId,
+                awayId: fixture.awayId,
+                homeLogo: fixture.homeLogo,
+                awayLogo: fixture.awayLogo,
+                homeGoals: fixture.homeGoals,
+                awayGoals: fixture.awayGoals,
+                events: events,
+                score: `${fixture.homeGoals || 0}-${fixture.awayGoals || 0}`,
+                status: fixture.status,
+                statusLong: fixture.statusLong || getMatchPeriod(fixture.status),
+                elapsed: fixture.elapsed || 0,
+                period: getMatchPeriod(fixture.status),
+                league: fixture.league,
+                venue: fixture.venue,
+                referee: fixture.referee,
+                date: fixture.date,
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] Partida não encontrada na API-Football: ${matchId}`);
+            res.end(JSON.stringify({
+                success: false,
+                error: 'Partida não encontrada',
+                source: 'api-football'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro: ${e.message}`);
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
 module.exports = {
     handleMatches,
     handleLive,
@@ -795,5 +1101,225 @@ module.exports = {
     handleValidatePredictions,
     handleBrazil,
     handleBrazilStandings,
-    handleTeamData
+    handleTeamData,
+    handleMatchEvents,
+    handleMatchLiveEvents,
+    handleLiveMatchData,
+    handleLiveFootballAPI,
+    handleMatchEventsFootball,
+    handleLineups,
+    handleMatchStats,
+    handleTeamForm,
+    handleLeagueStandings,
+    handleHeadToHeadAPI,
+    handleClearCache
 };
+
+async function handleLineups(req, res, fixtureId) {
+    console.log('═'.repeat(50));
+    console.log(`📡 [API] Buscando escalação para partida: ${fixtureId}`);
+    
+    try {
+        const lineups = await getLineupsViaCurl(fixtureId);
+        
+        if (lineups && lineups.length > 0) {
+            console.log(`✅ [API] Escalação encontrada: ${lineups.length} times`);
+            console.log(`📊 Times: ${lineups.map(l => l.team).join(' vs ')}`);
+            console.log('═'.repeat(50));
+            
+            res.end(JSON.stringify({
+                success: true,
+                fixtureId: parseInt(fixtureId),
+                lineups: lineups,
+                home: lineups[0]?.team || 'Time Casa',
+                away: lineups[1]?.team || 'Time Fora',
+                homeFormation: lineups[0]?.formation || '4-4-2',
+                awayFormation: lineups[1]?.formation || '4-4-2',
+                homeCoach: lineups[0]?.coach || '',
+                awayCoach: lineups[1]?.coach || '',
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] Escalação não disponível para partida ${fixtureId}`);
+            console.log('═'.repeat(50));
+            res.end(JSON.stringify({
+                success: false,
+                fixtureId: parseInt(fixtureId),
+                lineups: [],
+                source: 'api-football',
+                warning: 'Escalação não disponível para esta partida'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar escalação: ${e.message}`);
+        console.log('═'.repeat(50));
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleMatchStats(req, res, fixtureId) {
+    console.log('═'.repeat(50));
+    console.log(`📡 [API] Buscando estatísticas para partida: ${fixtureId}`);
+    
+    try {
+        const stats = await getMatchStatisticsById(fixtureId);
+        
+        if (stats && Object.keys(stats).length > 0) {
+            console.log(`✅ [API] Estatísticas encontradas`);
+            console.log('═'.repeat(50));
+            
+            res.end(JSON.stringify({
+                success: true,
+                fixtureId: parseInt(fixtureId),
+                statistics: stats,
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] Estatísticas não disponíveis para partida ${fixtureId}`);
+            console.log('═'.repeat(50));
+            res.end(JSON.stringify({
+                success: false,
+                fixtureId: parseInt(fixtureId),
+                statistics: null,
+                source: 'api-football',
+                warning: 'Estatísticas não disponíveis para esta partida'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar estatísticas: ${e.message}`);
+        console.log('═'.repeat(50));
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleTeamForm(req, res, teamId) {
+    console.log('═'.repeat(50));
+    console.log(`📡 [API] Buscando forma do time: ${teamId}`);
+    
+    try {
+        const form = await getTeamFormById(teamId);
+        
+        if (form) {
+            console.log(`✅ [API] Forma do time encontrada: ${form.formString}`);
+            console.log('═'.repeat(50));
+            
+            res.end(JSON.stringify({
+                success: true,
+                teamId: parseInt(teamId),
+                form: form.formString,
+                results: form.results,
+                summary: form.summary,
+                goalsFor: form.totalGoalsFor,
+                goalsAgainst: form.totalGoalsAgainst,
+                avgGoals: (form.totalGoalsFor / form.results.length).toFixed(2),
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] Forma do time não disponível: ${teamId}`);
+            console.log('═'.repeat(50));
+            res.end(JSON.stringify({
+                success: false,
+                teamId: parseInt(teamId),
+                form: null,
+                source: 'api-football',
+                warning: 'Forma do time não disponível'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar forma do time: ${e.message}`);
+        console.log('═'.repeat(50));
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleLeagueStandings(req, res, leagueId) {
+    const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
+    const season = urlObj.searchParams.get('season') || '2025';
+    
+    console.log('═'.repeat(50));
+    console.log(`📡 [API] Buscando classificação: ${leagueId} (temporada ${season})`);
+    
+    try {
+        const standings = await getLeagueStandingsById(leagueId, parseInt(season));
+        
+        if (standings && standings.standings.length > 0) {
+            console.log(`✅ [API] Classificação encontrada: ${standings.standings.length} times`);
+            console.log('═'.repeat(50));
+            
+            res.end(JSON.stringify({
+                success: true,
+                leagueId: parseInt(leagueId),
+                league: standings.league,
+                season: parseInt(season),
+                standings: standings.standings,
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] Classificação não disponível para ${leagueId}`);
+            console.log('═'.repeat(50));
+            res.end(JSON.stringify({
+                success: false,
+                leagueId: parseInt(leagueId),
+                standings: [],
+                source: 'api-football',
+                warning: 'Classificação não disponível'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar classificação: ${e.message}`);
+        console.log('═'.repeat(50));
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+async function handleHeadToHeadAPI(req, res) {
+    const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
+    const headTeam = urlObj.searchParams.get('head');
+    const awayTeam = urlObj.searchParams.get('away');
+    
+    console.log('═'.repeat(50));
+    console.log(`📡 [API] Buscando H2H: ${headTeam} vs ${awayTeam}`);
+    
+    try {
+        const h2h = await getH2H(headTeam, awayTeam);
+        
+        if (h2h && h2h.matches.length > 0) {
+            console.log(`✅ [API] H2H encontrado: ${h2h.matches.length} confrontos`);
+            console.log('═'.repeat(50));
+            
+            res.end(JSON.stringify({
+                success: true,
+                headTeam: h2h.headTeam,
+                awayTeam: h2h.awayTeam,
+                matches: h2h.matches,
+                summary: h2h.summary,
+                avgGoals: h2h.avgGoals,
+                source: 'api-football'
+            }));
+        } else {
+            console.log(`⚠️ [API] H2H não disponível`);
+            console.log('═'.repeat(50));
+            res.end(JSON.stringify({
+                success: false,
+                headTeam,
+                awayTeam,
+                matches: [],
+                source: 'api-football',
+                warning: 'Histórico de confrontos não disponível'
+            }));
+        }
+    } catch (e) {
+        console.log(`❌ [API] Erro ao buscar H2H: ${e.message}`);
+        console.log('═'.repeat(50));
+        res.end(JSON.stringify({ error: e.message }));
+    }
+}
+
+function handleClearCache(req, res) {
+    clearCache();
+    res.end(JSON.stringify({ 
+        success: true, 
+        message: 'Cache limpo com sucesso',
+        timestamp: new Date().toISOString()
+    }));
+}

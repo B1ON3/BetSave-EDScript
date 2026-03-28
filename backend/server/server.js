@@ -179,6 +179,72 @@ const server = http.createServer((req, res) => {
         return;
     }
     
+    if (req.url.startsWith('/api/events/')) {
+        const matchId = req.url.split('/')[3];
+        const home = urlObj.searchParams.get('home');
+        const away = urlObj.searchParams.get('away');
+        routes.handleMatchEvents({ url: req.url, token: API_TOKEN, headers: req.headers }, res, matchId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/live-events')) {
+        const home = urlObj.searchParams.get('home');
+        const away = urlObj.searchParams.get('away');
+        routes.handleMatchLiveEvents({ url: req.url, token: API_TOKEN, headers: req.headers }, res, home, away);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/live-match-data/')) {
+        const matchId = req.url.split('/')[3];
+        routes.handleLiveMatchData({ url: req.url, token: API_TOKEN, headers: req.headers }, res, matchId);
+        return;
+    }
+    
+    if (req.url === '/api/live-football') {
+        routes.handleLiveFootballAPI({ url: req.url, token: API_TOKEN, headers: req.headers }, res);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/football-events/')) {
+        const matchId = req.url.split('/')[3];
+        routes.handleMatchEventsFootball({ url: req.url, token: API_TOKEN, headers: req.headers }, res, matchId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/lineups/')) {
+        const fixtureId = req.url.split('/')[3];
+        routes.handleLineups({ url: req.url, token: API_TOKEN, headers: req.headers }, res, fixtureId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/match-stats/')) {
+        const fixtureId = req.url.split('/')[3];
+        routes.handleMatchStats({ url: req.url, token: API_TOKEN, headers: req.headers }, res, fixtureId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/team-form/')) {
+        const teamId = req.url.split('/')[3];
+        routes.handleTeamForm({ url: req.url, token: API_TOKEN, headers: req.headers }, res, teamId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/league-standings/')) {
+        const leagueId = req.url.split('/')[3];
+        routes.handleLeagueStandings({ url: req.url, token: API_TOKEN, headers: req.headers }, res, leagueId);
+        return;
+    }
+    
+    if (req.url.startsWith('/api/h2h')) {
+        routes.handleHeadToHeadAPI({ url: req.url, token: API_TOKEN, headers: req.headers }, res);
+        return;
+    }
+    
+    if (req.url === '/api/cache/clear') {
+        routes.handleClearCache({ url: req.url, token: API_TOKEN, headers: req.headers }, res);
+        return;
+    }
+    
     res.writeHead(404);
     res.end(JSON.stringify({ error: 'Endpoint não encontrado' }));
 });
